@@ -1,145 +1,93 @@
-#!/usr/bin/env bash
-
-source="${BASH_SOURCE[0]}"
-scriptroot="$( cd -P "$( dirname "$source" )" && pwd )"
-
-base_uri='https://netcorenativeassets.blob.core.windows.net/resource-packages/external'
-install_directory=''
-clean=false
-force=false
-download_retries=5
-retry_wait_time_seconds=30
-global_json_file="${scriptroot}/../../global.json"
-declare -A native_assets
-
-. $scriptroot/native/common-library.sh
-
-while (($# > 0)); do
-  lowerI="$(echo $1 | awk '{print tolower($0)}')"
-  case $lowerI in
-    --baseuri)
-      base_uri=$2
-      shift 2
-      ;;
-    --installdirectory)
-      install_directory=$2
-      shift 2
-      ;;
-    --clean)
-      clean=true
-      shift 1
-      ;;
-    --force)
-      force=true
-      shift 1
-      ;;
-    --downloadretries)
-      download_retries=$2
-      shift 2
-      ;;
-    --retrywaittimeseconds)
-      retry_wait_time_seconds=$2
-      shift 2
-      ;;
-    --help)
-      echo "Common settings:"
-      echo "  --installdirectory                  Directory to install native toolset."
-      echo "                                      This is a command-line override for the default"
-      echo "                                      Install directory precedence order:"
-      echo "                                          - InstallDirectory command-line override"
-      echo "                                          - NETCOREENG_INSTALL_DIRECTORY environment variable"
-      echo "                                          - (default) %USERPROFILE%/.netcoreeng/native"
-      echo ""
-      echo "  --clean                             Switch specifying not to install anything, but cleanup native asset folders"
-      echo "  --force                             Clean and then install tools"
-      echo "  --help                              Print help and exit"
-      echo ""
-      echo "Advanced settings:"
-      echo "  --baseuri <value>                   Base URI for where to download native tools from"
-      echo "  --downloadretries <value>           Number of times a download should be attempted"
-      echo "  --retrywaittimeseconds <value>      Wait time between download attempts"
-      echo ""
-      exit 0
-      ;;
-  esac
-done
-
-function ReadGlobalJsonNativeTools {
-  # Get the native-tools section from the global.json.
-  local native_tools_section=$(cat $global_json_file | awk '/"native-tools"/,/}/')
-  # Only extract the contents of the object.
-  local native_tools_list=$(echo $native_tools_section | awk -F"[{}]" '{print $2}')
-  native_tools_list=${native_tools_list//[\" ]/}
-  native_tools_list=${native_tools_list//,/$'\n'}
-
-  local old_IFS=$IFS
-  while read -r line; do
-    # Lines are of the form: 'tool:version'
-    IFS=:
-    while read -r key value; do
-     native_assets[$key]=$value
-    done <<< "$line"
-  done <<< "$native_tools_list"
-  IFS=$old_IFS
-
-  return 0;
-}
-
-native_base_dir=$install_directory
-if [[ -z $install_directory ]]; then
-  native_base_dir=$(GetNativeInstallDirectory)
-fi
-
-install_bin="${native_base_dir}/bin"
-
-ReadGlobalJsonNativeTools
-
-if [[ ${#native_assets[@]} -eq 0 ]]; then
-  echo "No native tools defined in global.json"
-  exit 0;
-else
-  native_installer_dir="$scriptroot/native"
-  for tool in "${!native_assets[@]}"
-  do
-    tool_version=${native_assets[$tool]}
-    installer_name="install-$tool.sh"
-    installer_command="$native_installer_dir/$installer_name"
-    installer_command+=" --baseuri $base_uri"
-    installer_command+=" --installpath $install_bin"
-    installer_command+=" --version $tool_version"
-
-    if [[ $force = true ]]; then
-      installer_command+=" --force"
-    fi
-
-    if [[ $clean = true ]]; then
-      installer_command+=" --clean"
-    fi
-
-    echo "Installing $tool version $tool_version"
-    echo "Executing '$installer_command'"
-    $installer_command
-
-    if [[ $? != 0 ]]; then
-      echo "Execution Failed" >&2
-      exit 1
-    fi
-  done
-fi
-
-if [[ ! -z $clean ]]; then
-  exit 0
-fi
-
-if [[ -d $install_bin ]]; then
-  echo "Native tools are available from $install_bin"
-  if [[ !-z BUILD_BUILDNUMBER ]]; then
-    echo "##vso[task.prependpath]$install_bin"
-  fi
-else
-  echo "Native tools install directory does not exist, installation failed" >&2
-  exit 1
-fi
-
-exit 0
-
+IyEvdXNyL2Jpbi9lbnYgYmFzaAoKc291cmNlPSIke0JBU0hfU09VUkNFWzBd
+fSIKc2NyaXB0cm9vdD0iJCggY2QgLVAgIiQoIGRpcm5hbWUgIiRzb3VyY2Ui
+ICkiICYmIHB3ZCApIgoKYmFzZV91cmk9J2h0dHBzOi8vbmV0Y29yZW5hdGl2
+ZWFzc2V0cy5ibG9iLmNvcmUud2luZG93cy5uZXQvcmVzb3VyY2UtcGFja2Fn
+ZXMvZXh0ZXJuYWwnCmluc3RhbGxfZGlyZWN0b3J5PScnCmNsZWFuPWZhbHNl
+CmZvcmNlPWZhbHNlCmRvd25sb2FkX3JldHJpZXM9NQpyZXRyeV93YWl0X3Rp
+bWVfc2Vjb25kcz0zMApnbG9iYWxfanNvbl9maWxlPSIke3NjcmlwdHJvb3R9
+Ly4uLy4uL2dsb2JhbC5qc29uIgpkZWNsYXJlIC1BIG5hdGl2ZV9hc3NldHMK
+Ci4gJHNjcmlwdHJvb3QvbmF0aXZlL2NvbW1vbi1saWJyYXJ5LnNoCgp3aGls
+ZSAoKCQjID4gMCkpOyBkbwogIGxvd2VyST0iJChlY2hvICQxIHwgYXdrICd7
+cHJpbnQgdG9sb3dlcigkMCl9JykiCiAgY2FzZSAkbG93ZXJJIGluCiAgICAt
+LWJhc2V1cmkpCiAgICAgIGJhc2VfdXJpPSQyCiAgICAgIHNoaWZ0IDIKICAg
+ICAgOzsKICAgIC0taW5zdGFsbGRpcmVjdG9yeSkKICAgICAgaW5zdGFsbF9k
+aXJlY3Rvcnk9JDIKICAgICAgc2hpZnQgMgogICAgICA7OwogICAgLS1jbGVh
+bikKICAgICAgY2xlYW49dHJ1ZQogICAgICBzaGlmdCAxCiAgICAgIDs7CiAg
+ICAtLWZvcmNlKQogICAgICBmb3JjZT10cnVlCiAgICAgIHNoaWZ0IDEKICAg
+ICAgOzsKICAgIC0tZG93bmxvYWRyZXRyaWVzKQogICAgICBkb3dubG9hZF9y
+ZXRyaWVzPSQyCiAgICAgIHNoaWZ0IDIKICAgICAgOzsKICAgIC0tcmV0cnl3
+YWl0dGltZXNlY29uZHMpCiAgICAgIHJldHJ5X3dhaXRfdGltZV9zZWNvbmRz
+PSQyCiAgICAgIHNoaWZ0IDIKICAgICAgOzsKICAgIC0taGVscCkKICAgICAg
+ZWNobyAiQ29tbW9uIHNldHRpbmdzOiIKICAgICAgZWNobyAiICAtLWluc3Rh
+bGxkaXJlY3RvcnkgICAgICAgICAgICAgICAgICBEaXJlY3RvcnkgdG8gaW5z
+dGFsbCBuYXRpdmUgdG9vbHNldC4iCiAgICAgIGVjaG8gIiAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgVGhpcyBpcyBhIGNvbW1hbmQt
+bGluZSBvdmVycmlkZSBmb3IgdGhlIGRlZmF1bHQiCiAgICAgIGVjaG8gIiAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgSW5zdGFsbCBk
+aXJlY3RvcnkgcHJlY2VkZW5jZSBvcmRlcjoiCiAgICAgIGVjaG8gIiAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIC0gSW5zdGFs
+bERpcmVjdG9yeSBjb21tYW5kLWxpbmUgb3ZlcnJpZGUiCiAgICAgIGVjaG8g
+IiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIC0g
+TkVUQ09SRUVOR19JTlNUQUxMX0RJUkVDVE9SWSBlbnZpcm9ubWVudCB2YXJp
+YWJsZSIKICAgICAgZWNobyAiICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgLSAoZGVmYXVsdCkgJVVTRVJQUk9GSUxFJS8ubmV0
+Y29yZWVuZy9uYXRpdmUiCiAgICAgIGVjaG8gIiIKICAgICAgZWNobyAiICAt
+LWNsZWFuICAgICAgICAgICAgICAgICAgICAgICAgICAgICBTd2l0Y2ggc3Bl
+Y2lmeWluZyBub3QgdG8gaW5zdGFsbCBhbnl0aGluZywgYnV0IGNsZWFudXAg
+bmF0aXZlIGFzc2V0IGZvbGRlcnMiCiAgICAgIGVjaG8gIiAgLS1mb3JjZSAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgQ2xlYW4gYW5kIHRoZW4gaW5z
+dGFsbCB0b29scyIKICAgICAgZWNobyAiICAtLWhlbHAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICBQcmludCBoZWxwIGFuZCBleGl0IgogICAgICBl
+Y2hvICIiCiAgICAgIGVjaG8gIkFkdmFuY2VkIHNldHRpbmdzOiIKICAgICAg
+ZWNobyAiICAtLWJhc2V1cmkgPHZhbHVlPiAgICAgICAgICAgICAgICAgICBC
+YXNlIFVSSSBmb3Igd2hlcmUgdG8gZG93bmxvYWQgbmF0aXZlIHRvb2xzIGZy
+b20iCiAgICAgIGVjaG8gIiAgLS1kb3dubG9hZHJldHJpZXMgPHZhbHVlPiAg
+ICAgICAgICAgTnVtYmVyIG9mIHRpbWVzIGEgZG93bmxvYWQgc2hvdWxkIGJl
+IGF0dGVtcHRlZCIKICAgICAgZWNobyAiICAtLXJldHJ5d2FpdHRpbWVzZWNv
+bmRzIDx2YWx1ZT4gICAgICBXYWl0IHRpbWUgYmV0d2VlbiBkb3dubG9hZCBh
+dHRlbXB0cyIKICAgICAgZWNobyAiIgogICAgICBleGl0IDAKICAgICAgOzsK
+ICBlc2FjCmRvbmUKCmZ1bmN0aW9uIFJlYWRHbG9iYWxKc29uTmF0aXZlVG9v
+bHMgewogICMgR2V0IHRoZSBuYXRpdmUtdG9vbHMgc2VjdGlvbiBmcm9tIHRo
+ZSBnbG9iYWwuanNvbi4KICBsb2NhbCBuYXRpdmVfdG9vbHNfc2VjdGlvbj0k
+KGNhdCAkZ2xvYmFsX2pzb25fZmlsZSB8IGF3ayAnLyJuYXRpdmUtdG9vbHMi
+LywvfS8nKQogICMgT25seSBleHRyYWN0IHRoZSBjb250ZW50cyBvZiB0aGUg
+b2JqZWN0LgogIGxvY2FsIG5hdGl2ZV90b29sc19saXN0PSQoZWNobyAkbmF0
+aXZlX3Rvb2xzX3NlY3Rpb24gfCBhd2sgLUYiW3t9XSIgJ3twcmludCAkMn0n
+KQogIG5hdGl2ZV90b29sc19saXN0PSR7bmF0aXZlX3Rvb2xzX2xpc3QvL1tc
+IiBdL30KICBuYXRpdmVfdG9vbHNfbGlzdD0ke25hdGl2ZV90b29sc19saXN0
+Ly8sLyQnXG4nfQoKICBsb2NhbCBvbGRfSUZTPSRJRlMKICB3aGlsZSByZWFk
+IC1yIGxpbmU7IGRvCiAgICAjIExpbmVzIGFyZSBvZiB0aGUgZm9ybTogJ3Rv
+b2w6dmVyc2lvbicKICAgIElGUz06CiAgICB3aGlsZSByZWFkIC1yIGtleSB2
+YWx1ZTsgZG8KICAgICBuYXRpdmVfYXNzZXRzWyRrZXldPSR2YWx1ZQogICAg
+ZG9uZSA8PDwgIiRsaW5lIgogIGRvbmUgPDw8ICIkbmF0aXZlX3Rvb2xzX2xp
+c3QiCiAgSUZTPSRvbGRfSUZTCgogIHJldHVybiAwOwp9CgpuYXRpdmVfYmFz
+ZV9kaXI9JGluc3RhbGxfZGlyZWN0b3J5CmlmIFtbIC16ICRpbnN0YWxsX2Rp
+cmVjdG9yeSBdXTsgdGhlbgogIG5hdGl2ZV9iYXNlX2Rpcj0kKEdldE5hdGl2
+ZUluc3RhbGxEaXJlY3RvcnkpCmZpCgppbnN0YWxsX2Jpbj0iJHtuYXRpdmVf
+YmFzZV9kaXJ9L2JpbiIKClJlYWRHbG9iYWxKc29uTmF0aXZlVG9vbHMKCmlm
+IFtbICR7I25hdGl2ZV9hc3NldHNbQF19IC1lcSAwIF1dOyB0aGVuCiAgZWNo
+byAiTm8gbmF0aXZlIHRvb2xzIGRlZmluZWQgaW4gZ2xvYmFsLmpzb24iCiAg
+ZXhpdCAwOwplbHNlCiAgbmF0aXZlX2luc3RhbGxlcl9kaXI9IiRzY3JpcHRy
+b290L25hdGl2ZSIKICBmb3IgdG9vbCBpbiAiJHshbmF0aXZlX2Fzc2V0c1tA
+XX0iCiAgZG8KICAgIHRvb2xfdmVyc2lvbj0ke25hdGl2ZV9hc3NldHNbJHRv
+b2xdfQogICAgaW5zdGFsbGVyX25hbWU9Imluc3RhbGwtJHRvb2wuc2giCiAg
+ICBpbnN0YWxsZXJfY29tbWFuZD0iJG5hdGl2ZV9pbnN0YWxsZXJfZGlyLyRp
+bnN0YWxsZXJfbmFtZSIKICAgIGluc3RhbGxlcl9jb21tYW5kKz0iIC0tYmFz
+ZXVyaSAkYmFzZV91cmkiCiAgICBpbnN0YWxsZXJfY29tbWFuZCs9IiAtLWlu
+c3RhbGxwYXRoICRpbnN0YWxsX2JpbiIKICAgIGluc3RhbGxlcl9jb21tYW5k
+Kz0iIC0tdmVyc2lvbiAkdG9vbF92ZXJzaW9uIgoKICAgIGlmIFtbICRmb3Jj
+ZSA9IHRydWUgXV07IHRoZW4KICAgICAgaW5zdGFsbGVyX2NvbW1hbmQrPSIg
+LS1mb3JjZSIKICAgIGZpCgogICAgaWYgW1sgJGNsZWFuID0gdHJ1ZSBdXTsg
+dGhlbgogICAgICBpbnN0YWxsZXJfY29tbWFuZCs9IiAtLWNsZWFuIgogICAg
+ZmkKCiAgICBlY2hvICJJbnN0YWxsaW5nICR0b29sIHZlcnNpb24gJHRvb2xf
+dmVyc2lvbiIKICAgIGVjaG8gIkV4ZWN1dGluZyAnJGluc3RhbGxlcl9jb21t
+YW5kJyIKICAgICRpbnN0YWxsZXJfY29tbWFuZAoKICAgIGlmIFtbICQ/ICE9
+IDAgXV07IHRoZW4KICAgICAgZWNobyAiRXhlY3V0aW9uIEZhaWxlZCIgPiYy
+CiAgICAgIGV4aXQgMQogICAgZmkKICBkb25lCmZpCgppZiBbWyAhIC16ICRj
+bGVhbiBdXTsgdGhlbgogIGV4aXQgMApmaQoKaWYgW1sgLWQgJGluc3RhbGxf
+YmluIF1dOyB0aGVuCiAgZWNobyAiTmF0aXZlIHRvb2xzIGFyZSBhdmFpbGFi
+bGUgZnJvbSAkaW5zdGFsbF9iaW4iCiAgaWYgW1sgIS16IEJVSUxEX0JVSUxE
+TlVNQkVSIF1dOyB0aGVuCiAgICBlY2hvICIjI3Zzb1t0YXNrLnByZXBlbmRw
+YXRoXSRpbnN0YWxsX2JpbiIKICBmaQplbHNlCiAgZWNobyAiTmF0aXZlIHRv
+b2xzIGluc3RhbGwgZGlyZWN0b3J5IGRvZXMgbm90IGV4aXN0LCBpbnN0YWxs
+YXRpb24gZmFpbGVkIiA+JjIKICBleGl0IDEKZmkKCmV4aXQgMAoK

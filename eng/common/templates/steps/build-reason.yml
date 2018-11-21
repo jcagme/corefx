@@ -1,12 +1,12 @@
-# build-reason.yml
-# Description: runs steps if build.reason condition is valid.  conditions is a string of valid build reasons 
-# to include steps (',' separated).
-parameters:
-  conditions: ''
-  steps: []
-
-steps:
-  - ${{ if and( not(startsWith(parameters.conditions, 'not')), contains(parameters.conditions, variables['build.reason'])) }}:
-    - ${{ parameters.steps }}
-  - ${{ if and( startsWith(parameters.conditions, 'not'), not(contains(parameters.conditions, variables['build.reason']))) }}:
-    - ${{ parameters.steps }}
+IyBidWlsZC1yZWFzb24ueW1sCiMgRGVzY3JpcHRpb246IHJ1bnMgc3RlcHMg
+aWYgYnVpbGQucmVhc29uIGNvbmRpdGlvbiBpcyB2YWxpZC4gIGNvbmRpdGlv
+bnMgaXMgYSBzdHJpbmcgb2YgdmFsaWQgYnVpbGQgcmVhc29ucyAKIyB0byBp
+bmNsdWRlIHN0ZXBzICgnLCcgc2VwYXJhdGVkKS4KcGFyYW1ldGVyczoKICBj
+b25kaXRpb25zOiAnJwogIHN0ZXBzOiBbXQoKc3RlcHM6CiAgLSAke3sgaWYg
+YW5kKCBub3Qoc3RhcnRzV2l0aChwYXJhbWV0ZXJzLmNvbmRpdGlvbnMsICdu
+b3QnKSksIGNvbnRhaW5zKHBhcmFtZXRlcnMuY29uZGl0aW9ucywgdmFyaWFi
+bGVzWydidWlsZC5yZWFzb24nXSkpIH19OgogICAgLSAke3sgcGFyYW1ldGVy
+cy5zdGVwcyB9fQogIC0gJHt7IGlmIGFuZCggc3RhcnRzV2l0aChwYXJhbWV0
+ZXJzLmNvbmRpdGlvbnMsICdub3QnKSwgbm90KGNvbnRhaW5zKHBhcmFtZXRl
+cnMuY29uZGl0aW9ucywgdmFyaWFibGVzWydidWlsZC5yZWFzb24nXSkpKSB9
+fToKICAgIC0gJHt7IHBhcmFtZXRlcnMuc3RlcHMgfX0K

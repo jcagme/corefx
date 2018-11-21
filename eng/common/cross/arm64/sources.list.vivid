@@ -1,11 +1,15 @@
-deb http://ports.ubuntu.com/ubuntu-ports/ vivid main restricted universe
-deb-src http://ports.ubuntu.com/ubuntu-ports/ vivid main restricted universe
-
-deb http://ports.ubuntu.com/ubuntu-ports/ vivid-updates main restricted universe
-deb-src http://ports.ubuntu.com/ubuntu-ports/ vivid-updates main restricted universe
-
-deb http://ports.ubuntu.com/ubuntu-ports/ vivid-backports main restricted
-deb-src http://ports.ubuntu.com/ubuntu-ports/ vivid-backports main restricted
-
-deb http://ports.ubuntu.com/ubuntu-ports/ vivid-security main restricted universe multiverse
-deb-src http://ports.ubuntu.com/ubuntu-ports/ vivid-security main restricted universe multiverse
+ZGViIGh0dHA6Ly9wb3J0cy51YnVudHUuY29tL3VidW50dS1wb3J0cy8gdml2
+aWQgbWFpbiByZXN0cmljdGVkIHVuaXZlcnNlCmRlYi1zcmMgaHR0cDovL3Bv
+cnRzLnVidW50dS5jb20vdWJ1bnR1LXBvcnRzLyB2aXZpZCBtYWluIHJlc3Ry
+aWN0ZWQgdW5pdmVyc2UKCmRlYiBodHRwOi8vcG9ydHMudWJ1bnR1LmNvbS91
+YnVudHUtcG9ydHMvIHZpdmlkLXVwZGF0ZXMgbWFpbiByZXN0cmljdGVkIHVu
+aXZlcnNlCmRlYi1zcmMgaHR0cDovL3BvcnRzLnVidW50dS5jb20vdWJ1bnR1
+LXBvcnRzLyB2aXZpZC11cGRhdGVzIG1haW4gcmVzdHJpY3RlZCB1bml2ZXJz
+ZQoKZGViIGh0dHA6Ly9wb3J0cy51YnVudHUuY29tL3VidW50dS1wb3J0cy8g
+dml2aWQtYmFja3BvcnRzIG1haW4gcmVzdHJpY3RlZApkZWItc3JjIGh0dHA6
+Ly9wb3J0cy51YnVudHUuY29tL3VidW50dS1wb3J0cy8gdml2aWQtYmFja3Bv
+cnRzIG1haW4gcmVzdHJpY3RlZAoKZGViIGh0dHA6Ly9wb3J0cy51YnVudHUu
+Y29tL3VidW50dS1wb3J0cy8gdml2aWQtc2VjdXJpdHkgbWFpbiByZXN0cmlj
+dGVkIHVuaXZlcnNlIG11bHRpdmVyc2UKZGViLXNyYyBodHRwOi8vcG9ydHMu
+dWJ1bnR1LmNvbS91YnVudHUtcG9ydHMvIHZpdmlkLXNlY3VyaXR5IG1haW4g
+cmVzdHJpY3RlZCB1bml2ZXJzZSBtdWx0aXZlcnNl

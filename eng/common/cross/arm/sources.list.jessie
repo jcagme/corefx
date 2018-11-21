@@ -1,3 +1,4 @@
-# Debian (sid)   # UNSTABLE
-deb http://ftp.debian.org/debian/ sid main contrib non-free
-deb-src http://ftp.debian.org/debian/ sid main contrib non-free
+IyBEZWJpYW4gKHNpZCkgICAjIFVOU1RBQkxFCmRlYiBodHRwOi8vZnRwLmRl
+Ymlhbi5vcmcvZGViaWFuLyBzaWQgbWFpbiBjb250cmliIG5vbi1mcmVlCmRl
+Yi1zcmMgaHR0cDovL2Z0cC5kZWJpYW4ub3JnL2RlYmlhbi8gc2lkIG1haW4g
+Y29udHJpYiBub24tZnJlZQo=

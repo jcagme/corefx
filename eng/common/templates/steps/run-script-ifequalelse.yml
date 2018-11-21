@@ -1,33 +1,22 @@
-parameters:
-  # if parameter1 equals parameter 2, run 'ifScript' command, else run 'elsescript' command
-  parameter1: ''
-  parameter2: ''
-  ifScript: ''
-  elseScript: ''
-
-  # name of script step
-  name: Script
-
-  # display name of script step
-  displayName: If-Equal-Else Script
-
-  # environment
-  env: {}
-
-  # conditional expression for step execution
-  condition: ''
-
-steps:
-- ${{ if and(ne(parameters.ifScript, ''), eq(parameters.parameter1, parameters.parameter2)) }}:
-  - script: ${{ parameters.ifScript }}
-    name: ${{ parameters.name }}
-    displayName: ${{ parameters.displayName }}
-    env: ${{ parameters.env }}
-    condition: ${{ parameters.condition }}
-
-- ${{ if and(ne(parameters.elseScript, ''), ne(parameters.parameter1, parameters.parameter2)) }}:
-  - script: ${{ parameters.elseScript }}
-    name: ${{ parameters.name }}
-    displayName: ${{ parameters.displayName }}
-    env: ${{ parameters.env }}
-    condition: ${{ parameters.condition }}
+cGFyYW1ldGVyczoKICAjIGlmIHBhcmFtZXRlcjEgZXF1YWxzIHBhcmFtZXRl
+ciAyLCBydW4gJ2lmU2NyaXB0JyBjb21tYW5kLCBlbHNlIHJ1biAnZWxzZXNj
+cmlwdCcgY29tbWFuZAogIHBhcmFtZXRlcjE6ICcnCiAgcGFyYW1ldGVyMjog
+JycKICBpZlNjcmlwdDogJycKICBlbHNlU2NyaXB0OiAnJwoKICAjIG5hbWUg
+b2Ygc2NyaXB0IHN0ZXAKICBuYW1lOiBTY3JpcHQKCiAgIyBkaXNwbGF5IG5h
+bWUgb2Ygc2NyaXB0IHN0ZXAKICBkaXNwbGF5TmFtZTogSWYtRXF1YWwtRWxz
+ZSBTY3JpcHQKCiAgIyBlbnZpcm9ubWVudAogIGVudjoge30KCiAgIyBjb25k
+aXRpb25hbCBleHByZXNzaW9uIGZvciBzdGVwIGV4ZWN1dGlvbgogIGNvbmRp
+dGlvbjogJycKCnN0ZXBzOgotICR7eyBpZiBhbmQobmUocGFyYW1ldGVycy5p
+ZlNjcmlwdCwgJycpLCBlcShwYXJhbWV0ZXJzLnBhcmFtZXRlcjEsIHBhcmFt
+ZXRlcnMucGFyYW1ldGVyMikpIH19OgogIC0gc2NyaXB0OiAke3sgcGFyYW1l
+dGVycy5pZlNjcmlwdCB9fQogICAgbmFtZTogJHt7IHBhcmFtZXRlcnMubmFt
+ZSB9fQogICAgZGlzcGxheU5hbWU6ICR7eyBwYXJhbWV0ZXJzLmRpc3BsYXlO
+YW1lIH19CiAgICBlbnY6ICR7eyBwYXJhbWV0ZXJzLmVudiB9fQogICAgY29u
+ZGl0aW9uOiAke3sgcGFyYW1ldGVycy5jb25kaXRpb24gfX0KCi0gJHt7IGlm
+IGFuZChuZShwYXJhbWV0ZXJzLmVsc2VTY3JpcHQsICcnKSwgbmUocGFyYW1l
+dGVycy5wYXJhbWV0ZXIxLCBwYXJhbWV0ZXJzLnBhcmFtZXRlcjIpKSB9fToK
+ICAtIHNjcmlwdDogJHt7IHBhcmFtZXRlcnMuZWxzZVNjcmlwdCB9fQogICAg
+bmFtZTogJHt7IHBhcmFtZXRlcnMubmFtZSB9fQogICAgZGlzcGxheU5hbWU6
+ICR7eyBwYXJhbWV0ZXJzLmRpc3BsYXlOYW1lIH19CiAgICBlbnY6ICR7eyBw
+YXJhbWV0ZXJzLmVudiB9fQogICAgY29uZGl0aW9uOiAke3sgcGFyYW1ldGVy
+cy5jb25kaXRpb24gfX0=

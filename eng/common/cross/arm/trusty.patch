@@ -1,97 +1,63 @@
-diff -u -r a/usr/include/urcu/uatomic/generic.h b/usr/include/urcu/uatomic/generic.h
---- a/usr/include/urcu/uatomic/generic.h	2014-03-28 06:04:42.000000000 +0900
-+++ b/usr/include/urcu/uatomic/generic.h	2017-02-13 10:35:21.189927116 +0900
-@@ -65,17 +65,17 @@
- 	switch (len) {
- #ifdef UATOMIC_HAS_ATOMIC_BYTE
- 	case 1:
--		return __sync_val_compare_and_swap_1(addr, old, _new);
-+		return __sync_val_compare_and_swap_1((uint8_t *) addr, old, _new);
- #endif
- #ifdef UATOMIC_HAS_ATOMIC_SHORT
- 	case 2:
--		return __sync_val_compare_and_swap_2(addr, old, _new);
-+		return __sync_val_compare_and_swap_2((uint16_t *) addr, old, _new);
- #endif
- 	case 4:
--		return __sync_val_compare_and_swap_4(addr, old, _new);
-+		return __sync_val_compare_and_swap_4((uint32_t *) addr, old, _new);
- #if (CAA_BITS_PER_LONG == 64)
- 	case 8:
--		return __sync_val_compare_and_swap_8(addr, old, _new);
-+		return __sync_val_compare_and_swap_8((uint64_t *) addr, old, _new);
- #endif
- 	}
- 	_uatomic_link_error();
-@@ -100,20 +100,20 @@
- 	switch (len) {
- #ifdef UATOMIC_HAS_ATOMIC_BYTE
- 	case 1:
--		__sync_and_and_fetch_1(addr, val);
-+		__sync_and_and_fetch_1((uint8_t *) addr, val);
- 		return;
- #endif
- #ifdef UATOMIC_HAS_ATOMIC_SHORT
- 	case 2:
--		__sync_and_and_fetch_2(addr, val);
-+		__sync_and_and_fetch_2((uint16_t *) addr, val);
- 		return;
- #endif
- 	case 4:
--		__sync_and_and_fetch_4(addr, val);
-+		__sync_and_and_fetch_4((uint32_t *) addr, val);
- 		return;
- #if (CAA_BITS_PER_LONG == 64)
- 	case 8:
--		__sync_and_and_fetch_8(addr, val);
-+		__sync_and_and_fetch_8((uint64_t *) addr, val);
- 		return;
- #endif
- 	}
-@@ -139,20 +139,20 @@
- 	switch (len) {
- #ifdef UATOMIC_HAS_ATOMIC_BYTE
- 	case 1:
--		__sync_or_and_fetch_1(addr, val);
-+		__sync_or_and_fetch_1((uint8_t *) addr, val);
- 		return;
- #endif
- #ifdef UATOMIC_HAS_ATOMIC_SHORT
- 	case 2:
--		__sync_or_and_fetch_2(addr, val);
-+		__sync_or_and_fetch_2((uint16_t *) addr, val);
- 		return;
- #endif
- 	case 4:
--		__sync_or_and_fetch_4(addr, val);
-+		__sync_or_and_fetch_4((uint32_t *) addr, val);
- 		return;
- #if (CAA_BITS_PER_LONG == 64)
- 	case 8:
--		__sync_or_and_fetch_8(addr, val);
-+		__sync_or_and_fetch_8((uint64_t *) addr, val);
- 		return;
- #endif
- 	}
-@@ -180,17 +180,17 @@
- 	switch (len) {
- #ifdef UATOMIC_HAS_ATOMIC_BYTE
- 	case 1:
--		return __sync_add_and_fetch_1(addr, val);
-+		return __sync_add_and_fetch_1((uint8_t *) addr, val);
- #endif
- #ifdef UATOMIC_HAS_ATOMIC_SHORT
- 	case 2:
--		return __sync_add_and_fetch_2(addr, val);
-+		return __sync_add_and_fetch_2((uint16_t *) addr, val);
- #endif
- 	case 4:
--		return __sync_add_and_fetch_4(addr, val);
-+		return __sync_add_and_fetch_4((uint32_t *) addr, val);
- #if (CAA_BITS_PER_LONG == 64)
- 	case 8:
--		return __sync_add_and_fetch_8(addr, val);
-+		return __sync_add_and_fetch_8((uint64_t *) addr, val);
- #endif
- 	}
- 	_uatomic_link_error();
+ZGlmZiAtdSAtciBhL3Vzci9pbmNsdWRlL3VyY3UvdWF0b21pYy9nZW5lcmlj
+LmggYi91c3IvaW5jbHVkZS91cmN1L3VhdG9taWMvZ2VuZXJpYy5oCi0tLSBh
+L3Vzci9pbmNsdWRlL3VyY3UvdWF0b21pYy9nZW5lcmljLmgJMjAxNC0wMy0y
+OCAwNjowNDo0Mi4wMDAwMDAwMDAgKzA5MDAKKysrIGIvdXNyL2luY2x1ZGUv
+dXJjdS91YXRvbWljL2dlbmVyaWMuaAkyMDE3LTAyLTEzIDEwOjM1OjIxLjE4
+OTkyNzExNiArMDkwMApAQCAtNjUsMTcgKzY1LDE3IEBACiAJc3dpdGNoIChs
+ZW4pIHsKICNpZmRlZiBVQVRPTUlDX0hBU19BVE9NSUNfQllURQogCWNhc2Ug
+MToKLQkJcmV0dXJuIF9fc3luY192YWxfY29tcGFyZV9hbmRfc3dhcF8xKGFk
+ZHIsIG9sZCwgX25ldyk7CisJCXJldHVybiBfX3N5bmNfdmFsX2NvbXBhcmVf
+YW5kX3N3YXBfMSgodWludDhfdCAqKSBhZGRyLCBvbGQsIF9uZXcpOwogI2Vu
+ZGlmCiAjaWZkZWYgVUFUT01JQ19IQVNfQVRPTUlDX1NIT1JUCiAJY2FzZSAy
+OgotCQlyZXR1cm4gX19zeW5jX3ZhbF9jb21wYXJlX2FuZF9zd2FwXzIoYWRk
+ciwgb2xkLCBfbmV3KTsKKwkJcmV0dXJuIF9fc3luY192YWxfY29tcGFyZV9h
+bmRfc3dhcF8yKCh1aW50MTZfdCAqKSBhZGRyLCBvbGQsIF9uZXcpOwogI2Vu
+ZGlmCiAJY2FzZSA0OgotCQlyZXR1cm4gX19zeW5jX3ZhbF9jb21wYXJlX2Fu
+ZF9zd2FwXzQoYWRkciwgb2xkLCBfbmV3KTsKKwkJcmV0dXJuIF9fc3luY192
+YWxfY29tcGFyZV9hbmRfc3dhcF80KCh1aW50MzJfdCAqKSBhZGRyLCBvbGQs
+IF9uZXcpOwogI2lmIChDQUFfQklUU19QRVJfTE9ORyA9PSA2NCkKIAljYXNl
+IDg6Ci0JCXJldHVybiBfX3N5bmNfdmFsX2NvbXBhcmVfYW5kX3N3YXBfOChh
+ZGRyLCBvbGQsIF9uZXcpOworCQlyZXR1cm4gX19zeW5jX3ZhbF9jb21wYXJl
+X2FuZF9zd2FwXzgoKHVpbnQ2NF90ICopIGFkZHIsIG9sZCwgX25ldyk7CiAj
+ZW5kaWYKIAl9CiAJX3VhdG9taWNfbGlua19lcnJvcigpOwpAQCAtMTAwLDIw
+ICsxMDAsMjAgQEAKIAlzd2l0Y2ggKGxlbikgewogI2lmZGVmIFVBVE9NSUNf
+SEFTX0FUT01JQ19CWVRFCiAJY2FzZSAxOgotCQlfX3N5bmNfYW5kX2FuZF9m
+ZXRjaF8xKGFkZHIsIHZhbCk7CisJCV9fc3luY19hbmRfYW5kX2ZldGNoXzEo
+KHVpbnQ4X3QgKikgYWRkciwgdmFsKTsKIAkJcmV0dXJuOwogI2VuZGlmCiAj
+aWZkZWYgVUFUT01JQ19IQVNfQVRPTUlDX1NIT1JUCiAJY2FzZSAyOgotCQlf
+X3N5bmNfYW5kX2FuZF9mZXRjaF8yKGFkZHIsIHZhbCk7CisJCV9fc3luY19h
+bmRfYW5kX2ZldGNoXzIoKHVpbnQxNl90ICopIGFkZHIsIHZhbCk7CiAJCXJl
+dHVybjsKICNlbmRpZgogCWNhc2UgNDoKLQkJX19zeW5jX2FuZF9hbmRfZmV0
+Y2hfNChhZGRyLCB2YWwpOworCQlfX3N5bmNfYW5kX2FuZF9mZXRjaF80KCh1
+aW50MzJfdCAqKSBhZGRyLCB2YWwpOwogCQlyZXR1cm47CiAjaWYgKENBQV9C
+SVRTX1BFUl9MT05HID09IDY0KQogCWNhc2UgODoKLQkJX19zeW5jX2FuZF9h
+bmRfZmV0Y2hfOChhZGRyLCB2YWwpOworCQlfX3N5bmNfYW5kX2FuZF9mZXRj
+aF84KCh1aW50NjRfdCAqKSBhZGRyLCB2YWwpOwogCQlyZXR1cm47CiAjZW5k
+aWYKIAl9CkBAIC0xMzksMjAgKzEzOSwyMCBAQAogCXN3aXRjaCAobGVuKSB7
+CiAjaWZkZWYgVUFUT01JQ19IQVNfQVRPTUlDX0JZVEUKIAljYXNlIDE6Ci0J
+CV9fc3luY19vcl9hbmRfZmV0Y2hfMShhZGRyLCB2YWwpOworCQlfX3N5bmNf
+b3JfYW5kX2ZldGNoXzEoKHVpbnQ4X3QgKikgYWRkciwgdmFsKTsKIAkJcmV0
+dXJuOwogI2VuZGlmCiAjaWZkZWYgVUFUT01JQ19IQVNfQVRPTUlDX1NIT1JU
+CiAJY2FzZSAyOgotCQlfX3N5bmNfb3JfYW5kX2ZldGNoXzIoYWRkciwgdmFs
+KTsKKwkJX19zeW5jX29yX2FuZF9mZXRjaF8yKCh1aW50MTZfdCAqKSBhZGRy
+LCB2YWwpOwogCQlyZXR1cm47CiAjZW5kaWYKIAljYXNlIDQ6Ci0JCV9fc3lu
+Y19vcl9hbmRfZmV0Y2hfNChhZGRyLCB2YWwpOworCQlfX3N5bmNfb3JfYW5k
+X2ZldGNoXzQoKHVpbnQzMl90ICopIGFkZHIsIHZhbCk7CiAJCXJldHVybjsK
+ICNpZiAoQ0FBX0JJVFNfUEVSX0xPTkcgPT0gNjQpCiAJY2FzZSA4OgotCQlf
+X3N5bmNfb3JfYW5kX2ZldGNoXzgoYWRkciwgdmFsKTsKKwkJX19zeW5jX29y
+X2FuZF9mZXRjaF84KCh1aW50NjRfdCAqKSBhZGRyLCB2YWwpOwogCQlyZXR1
+cm47CiAjZW5kaWYKIAl9CkBAIC0xODAsMTcgKzE4MCwxNyBAQAogCXN3aXRj
+aCAobGVuKSB7CiAjaWZkZWYgVUFUT01JQ19IQVNfQVRPTUlDX0JZVEUKIAlj
+YXNlIDE6Ci0JCXJldHVybiBfX3N5bmNfYWRkX2FuZF9mZXRjaF8xKGFkZHIs
+IHZhbCk7CisJCXJldHVybiBfX3N5bmNfYWRkX2FuZF9mZXRjaF8xKCh1aW50
+OF90ICopIGFkZHIsIHZhbCk7CiAjZW5kaWYKICNpZmRlZiBVQVRPTUlDX0hB
+U19BVE9NSUNfU0hPUlQKIAljYXNlIDI6Ci0JCXJldHVybiBfX3N5bmNfYWRk
+X2FuZF9mZXRjaF8yKGFkZHIsIHZhbCk7CisJCXJldHVybiBfX3N5bmNfYWRk
+X2FuZF9mZXRjaF8yKCh1aW50MTZfdCAqKSBhZGRyLCB2YWwpOwogI2VuZGlm
+CiAJY2FzZSA0OgotCQlyZXR1cm4gX19zeW5jX2FkZF9hbmRfZmV0Y2hfNChh
+ZGRyLCB2YWwpOworCQlyZXR1cm4gX19zeW5jX2FkZF9hbmRfZmV0Y2hfNCgo
+dWludDMyX3QgKikgYWRkciwgdmFsKTsKICNpZiAoQ0FBX0JJVFNfUEVSX0xP
+TkcgPT0gNjQpCiAJY2FzZSA4OgotCQlyZXR1cm4gX19zeW5jX2FkZF9hbmRf
+ZmV0Y2hfOChhZGRyLCB2YWwpOworCQlyZXR1cm4gX19zeW5jX2FkZF9hbmRf
+ZmV0Y2hfOCgodWludDY0X3QgKikgYWRkciwgdmFsKTsKICNlbmRpZgogCX0K
+IAlfdWF0b21pY19saW5rX2Vycm9yKCk7Cg==

@@ -1,3 +1,4 @@
-@echo off
-powershell -ExecutionPolicy ByPass -NoProfile -command "& """%~dp0Build.ps1""" -restore -build -test -sign -pack -publish -ci %*"
-exit /b %ErrorLevel%
+QGVjaG8gb2ZmCnBvd2Vyc2hlbGwgLUV4ZWN1dGlvblBvbGljeSBCeVBhc3Mg
+LU5vUHJvZmlsZSAtY29tbWFuZCAiJiAiIiIlfmRwMEJ1aWxkLnBzMSIiIiAt
+cmVzdG9yZSAtYnVpbGQgLXRlc3QgLXNpZ24gLXBhY2sgLXB1Ymxpc2ggLWNp
+ICUqIgpleGl0IC9iICVFcnJvckxldmVsJQo=

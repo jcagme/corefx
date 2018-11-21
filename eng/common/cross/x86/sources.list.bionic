@@ -1,11 +1,15 @@
-deb http://archive.ubuntu.com/ubuntu/ bionic main restricted universe
-deb-src http://archive.ubuntu.com/ubuntu/ bionic main restricted universe
-
-deb http://archive.ubuntu.com/ubuntu/ bionic-updates main restricted universe
-deb-src http://archive.ubuntu.com/ubuntu/ bionic-updates main restricted universe
-
-deb http://archive.ubuntu.com/ubuntu/ bionic-backports main restricted
-deb-src http://archive.ubuntu.com/ubuntu/ bionic-backports main restricted
-
-deb http://archive.ubuntu.com/ubuntu/ bionic-security main restricted universe multiverse
-deb-src http://archive.ubuntu.com/ubuntu/ bionic-security main restricted universe multiverse
+ZGViIGh0dHA6Ly9hcmNoaXZlLnVidW50dS5jb20vdWJ1bnR1LyBiaW9uaWMg
+bWFpbiByZXN0cmljdGVkIHVuaXZlcnNlCmRlYi1zcmMgaHR0cDovL2FyY2hp
+dmUudWJ1bnR1LmNvbS91YnVudHUvIGJpb25pYyBtYWluIHJlc3RyaWN0ZWQg
+dW5pdmVyc2UKCmRlYiBodHRwOi8vYXJjaGl2ZS51YnVudHUuY29tL3VidW50
+dS8gYmlvbmljLXVwZGF0ZXMgbWFpbiByZXN0cmljdGVkIHVuaXZlcnNlCmRl
+Yi1zcmMgaHR0cDovL2FyY2hpdmUudWJ1bnR1LmNvbS91YnVudHUvIGJpb25p
+Yy11cGRhdGVzIG1haW4gcmVzdHJpY3RlZCB1bml2ZXJzZQoKZGViIGh0dHA6
+Ly9hcmNoaXZlLnVidW50dS5jb20vdWJ1bnR1LyBiaW9uaWMtYmFja3BvcnRz
+IG1haW4gcmVzdHJpY3RlZApkZWItc3JjIGh0dHA6Ly9hcmNoaXZlLnVidW50
+dS5jb20vdWJ1bnR1LyBiaW9uaWMtYmFja3BvcnRzIG1haW4gcmVzdHJpY3Rl
+ZAoKZGViIGh0dHA6Ly9hcmNoaXZlLnVidW50dS5jb20vdWJ1bnR1LyBiaW9u
+aWMtc2VjdXJpdHkgbWFpbiByZXN0cmljdGVkIHVuaXZlcnNlIG11bHRpdmVy
+c2UKZGViLXNyYyBodHRwOi8vYXJjaGl2ZS51YnVudHUuY29tL3VidW50dS8g
+YmlvbmljLXNlY3VyaXR5IG1haW4gcmVzdHJpY3RlZCB1bml2ZXJzZSBtdWx0
+aXZlcnNlCg==

@@ -1,117 +1,65 @@
-#!/usr/bin/env bash
-
-source="${BASH_SOURCE[0]}"
-scriptroot="$( cd -P "$( dirname "$source" )" && pwd )"
-
-. $scriptroot/common-library.sh
-
-base_uri=
-install_path=
-version=
-clean=false
-force=false
-download_retries=5
-retry_wait_time_seconds=30
-
-while (($# > 0)); do
-  lowerI="$(echo $1 | awk '{print tolower($0)}')"
-  case $lowerI in
-    --baseuri)
-      base_uri=$2
-      shift 2
-      ;;
-    --installpath)
-      install_path=$2
-      shift 2
-      ;;
-    --version)
-      version=$2
-      shift 2
-      ;;
-    --clean)
-      clean=true
-      shift 1
-      ;;
-    --force)
-      force=true
-      shift 1
-      ;;
-    --downloadretries)
-      download_retries=$2
-      shift 2
-      ;;
-    --retrywaittimeseconds)
-      retry_wait_time_seconds=$2
-      shift 2
-      ;;
-    --help)
-      echo "Common settings:"
-      echo "  --baseuri <value>        Base file directory or Url wrom which to acquire tool archives"
-      echo "  --installpath <value>    Base directory to install native tool to"
-      echo "  --clean                  Don't install the tool, just clean up the current install of the tool"
-      echo "  --force                  Force install of tools even if they previously exist"
-      echo "  --help                   Print help and exit"
-      echo ""
-      echo "Advanced settings:"
-      echo "  --downloadretries        Total number of retry attempts"
-      echo "  --retrywaittimeseconds   Wait time between retry attempts in seconds"
-      echo ""
-      exit 0
-      ;;
-  esac
-done
-
-tool_name="cmake"
-tool_os=$(GetCurrentOS)
-tool_folder=$(echo $tool_os | awk '{print tolower($0)}')
-tool_arch="x86_64"
-tool_name_moniker="$tool_name-$version-$tool_os-$tool_arch"
-tool_install_directory="$install_path/$tool_name/$version"
-tool_file_path="$tool_install_directory/$tool_name_moniker/bin/$tool_name"
-shim_path="$install_path/$tool_name.sh"
-uri="${base_uri}/$tool_folder/cmake/$tool_name_moniker.tar.gz"
-
-# Clean up tool and installers
-if [[ $clean = true ]]; then
-  echo "Cleaning $tool_install_directory"
-  if [[ -d $tool_install_directory ]]; then
-    rm -rf $tool_install_directory
-  fi
-
-  echo "Cleaning $shim_path"
-  if [[ -f $shim_path ]]; then
-    rm -rf $shim_path
-  fi
-
-  tool_temp_path=$(GetTempPathFileName $uri)
-  echo "Cleaning $tool_temp_path"
-  if [[ -f $tool_temp_path ]]; then
-    rm -rf $tool_temp_path
-  fi
-
-  exit 0
-fi
-
-# Install tool
-if [[ -f $tool_file_path ]] && [[ $force = false ]]; then
-  echo "$tool_name ($version) already exists, skipping install"
-  exit 0
-fi
-
-DownloadAndExtract $uri $tool_install_directory $force $download_retries $retry_wait_time_seconds
-
-if [[ $? != 0 ]]; then
-  echo "Installation failed" >&2
-  exit 1
-fi
-
-# Generate Shim
-# Always rewrite shims so that we are referencing the expected version
-NewScriptShim $shim_path $tool_file_path true
-
-if [[ $? != 0 ]]; then
-  echo "Shim generation failed" >&2
-  exit 1
-fi
-
-exit 0
+IyEvdXNyL2Jpbi9lbnYgYmFzaAoKc291cmNlPSIke0JBU0hfU09VUkNFWzBd
+fSIKc2NyaXB0cm9vdD0iJCggY2QgLVAgIiQoIGRpcm5hbWUgIiRzb3VyY2Ui
+ICkiICYmIHB3ZCApIgoKLiAkc2NyaXB0cm9vdC9jb21tb24tbGlicmFyeS5z
+aAoKYmFzZV91cmk9Cmluc3RhbGxfcGF0aD0KdmVyc2lvbj0KY2xlYW49ZmFs
+c2UKZm9yY2U9ZmFsc2UKZG93bmxvYWRfcmV0cmllcz01CnJldHJ5X3dhaXRf
+dGltZV9zZWNvbmRzPTMwCgp3aGlsZSAoKCQjID4gMCkpOyBkbwogIGxvd2Vy
+ST0iJChlY2hvICQxIHwgYXdrICd7cHJpbnQgdG9sb3dlcigkMCl9JykiCiAg
+Y2FzZSAkbG93ZXJJIGluCiAgICAtLWJhc2V1cmkpCiAgICAgIGJhc2VfdXJp
+PSQyCiAgICAgIHNoaWZ0IDIKICAgICAgOzsKICAgIC0taW5zdGFsbHBhdGgp
+CiAgICAgIGluc3RhbGxfcGF0aD0kMgogICAgICBzaGlmdCAyCiAgICAgIDs7
+CiAgICAtLXZlcnNpb24pCiAgICAgIHZlcnNpb249JDIKICAgICAgc2hpZnQg
+MgogICAgICA7OwogICAgLS1jbGVhbikKICAgICAgY2xlYW49dHJ1ZQogICAg
+ICBzaGlmdCAxCiAgICAgIDs7CiAgICAtLWZvcmNlKQogICAgICBmb3JjZT10
+cnVlCiAgICAgIHNoaWZ0IDEKICAgICAgOzsKICAgIC0tZG93bmxvYWRyZXRy
+aWVzKQogICAgICBkb3dubG9hZF9yZXRyaWVzPSQyCiAgICAgIHNoaWZ0IDIK
+ICAgICAgOzsKICAgIC0tcmV0cnl3YWl0dGltZXNlY29uZHMpCiAgICAgIHJl
+dHJ5X3dhaXRfdGltZV9zZWNvbmRzPSQyCiAgICAgIHNoaWZ0IDIKICAgICAg
+OzsKICAgIC0taGVscCkKICAgICAgZWNobyAiQ29tbW9uIHNldHRpbmdzOiIK
+ICAgICAgZWNobyAiICAtLWJhc2V1cmkgPHZhbHVlPiAgICAgICAgQmFzZSBm
+aWxlIGRpcmVjdG9yeSBvciBVcmwgd3JvbSB3aGljaCB0byBhY3F1aXJlIHRv
+b2wgYXJjaGl2ZXMiCiAgICAgIGVjaG8gIiAgLS1pbnN0YWxscGF0aCA8dmFs
+dWU+ICAgIEJhc2UgZGlyZWN0b3J5IHRvIGluc3RhbGwgbmF0aXZlIHRvb2wg
+dG8iCiAgICAgIGVjaG8gIiAgLS1jbGVhbiAgICAgICAgICAgICAgICAgIERv
+bid0IGluc3RhbGwgdGhlIHRvb2wsIGp1c3QgY2xlYW4gdXAgdGhlIGN1cnJl
+bnQgaW5zdGFsbCBvZiB0aGUgdG9vbCIKICAgICAgZWNobyAiICAtLWZvcmNl
+ICAgICAgICAgICAgICAgICAgRm9yY2UgaW5zdGFsbCBvZiB0b29scyBldmVu
+IGlmIHRoZXkgcHJldmlvdXNseSBleGlzdCIKICAgICAgZWNobyAiICAtLWhl
+bHAgICAgICAgICAgICAgICAgICAgUHJpbnQgaGVscCBhbmQgZXhpdCIKICAg
+ICAgZWNobyAiIgogICAgICBlY2hvICJBZHZhbmNlZCBzZXR0aW5nczoiCiAg
+ICAgIGVjaG8gIiAgLS1kb3dubG9hZHJldHJpZXMgICAgICAgIFRvdGFsIG51
+bWJlciBvZiByZXRyeSBhdHRlbXB0cyIKICAgICAgZWNobyAiICAtLXJldHJ5
+d2FpdHRpbWVzZWNvbmRzICAgV2FpdCB0aW1lIGJldHdlZW4gcmV0cnkgYXR0
+ZW1wdHMgaW4gc2Vjb25kcyIKICAgICAgZWNobyAiIgogICAgICBleGl0IDAK
+ICAgICAgOzsKICBlc2FjCmRvbmUKCnRvb2xfbmFtZT0iY21ha2UiCnRvb2xf
+b3M9JChHZXRDdXJyZW50T1MpCnRvb2xfZm9sZGVyPSQoZWNobyAkdG9vbF9v
+cyB8IGF3ayAne3ByaW50IHRvbG93ZXIoJDApfScpCnRvb2xfYXJjaD0ieDg2
+XzY0Igp0b29sX25hbWVfbW9uaWtlcj0iJHRvb2xfbmFtZS0kdmVyc2lvbi0k
+dG9vbF9vcy0kdG9vbF9hcmNoIgp0b29sX2luc3RhbGxfZGlyZWN0b3J5PSIk
+aW5zdGFsbF9wYXRoLyR0b29sX25hbWUvJHZlcnNpb24iCnRvb2xfZmlsZV9w
+YXRoPSIkdG9vbF9pbnN0YWxsX2RpcmVjdG9yeS8kdG9vbF9uYW1lX21vbmlr
+ZXIvYmluLyR0b29sX25hbWUiCnNoaW1fcGF0aD0iJGluc3RhbGxfcGF0aC8k
+dG9vbF9uYW1lLnNoIgp1cmk9IiR7YmFzZV91cml9LyR0b29sX2ZvbGRlci9j
+bWFrZS8kdG9vbF9uYW1lX21vbmlrZXIudGFyLmd6IgoKIyBDbGVhbiB1cCB0
+b29sIGFuZCBpbnN0YWxsZXJzCmlmIFtbICRjbGVhbiA9IHRydWUgXV07IHRo
+ZW4KICBlY2hvICJDbGVhbmluZyAkdG9vbF9pbnN0YWxsX2RpcmVjdG9yeSIK
+ICBpZiBbWyAtZCAkdG9vbF9pbnN0YWxsX2RpcmVjdG9yeSBdXTsgdGhlbgog
+ICAgcm0gLXJmICR0b29sX2luc3RhbGxfZGlyZWN0b3J5CiAgZmkKCiAgZWNo
+byAiQ2xlYW5pbmcgJHNoaW1fcGF0aCIKICBpZiBbWyAtZiAkc2hpbV9wYXRo
+IF1dOyB0aGVuCiAgICBybSAtcmYgJHNoaW1fcGF0aAogIGZpCgogIHRvb2xf
+dGVtcF9wYXRoPSQoR2V0VGVtcFBhdGhGaWxlTmFtZSAkdXJpKQogIGVjaG8g
+IkNsZWFuaW5nICR0b29sX3RlbXBfcGF0aCIKICBpZiBbWyAtZiAkdG9vbF90
+ZW1wX3BhdGggXV07IHRoZW4KICAgIHJtIC1yZiAkdG9vbF90ZW1wX3BhdGgK
+ICBmaQoKICBleGl0IDAKZmkKCiMgSW5zdGFsbCB0b29sCmlmIFtbIC1mICR0
+b29sX2ZpbGVfcGF0aCBdXSAmJiBbWyAkZm9yY2UgPSBmYWxzZSBdXTsgdGhl
+bgogIGVjaG8gIiR0b29sX25hbWUgKCR2ZXJzaW9uKSBhbHJlYWR5IGV4aXN0
+cywgc2tpcHBpbmcgaW5zdGFsbCIKICBleGl0IDAKZmkKCkRvd25sb2FkQW5k
+RXh0cmFjdCAkdXJpICR0b29sX2luc3RhbGxfZGlyZWN0b3J5ICRmb3JjZSAk
+ZG93bmxvYWRfcmV0cmllcyAkcmV0cnlfd2FpdF90aW1lX3NlY29uZHMKCmlm
+IFtbICQ/ICE9IDAgXV07IHRoZW4KICBlY2hvICJJbnN0YWxsYXRpb24gZmFp
+bGVkIiA+JjIKICBleGl0IDEKZmkKCiMgR2VuZXJhdGUgU2hpbQojIEFsd2F5
+cyByZXdyaXRlIHNoaW1zIHNvIHRoYXQgd2UgYXJlIHJlZmVyZW5jaW5nIHRo
+ZSBleHBlY3RlZCB2ZXJzaW9uCk5ld1NjcmlwdFNoaW0gJHNoaW1fcGF0aCAk
+dG9vbF9maWxlX3BhdGggdHJ1ZQoKaWYgW1sgJD8gIT0gMCBdXTsgdGhlbgog
+IGVjaG8gIlNoaW0gZ2VuZXJhdGlvbiBmYWlsZWQiID4mMgogIGV4aXQgMQpm
+aQoKZXhpdCAw

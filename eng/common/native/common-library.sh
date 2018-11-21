@@ -1,168 +1,83 @@
-#!/usr/bin/env bash
-
-function GetNativeInstallDirectory {
-  local install_dir
-
-  if [[ -z $NETCOREENG_INSTALL_DIRECTORY ]]; then
-    install_dir=$HOME/.netcoreeng/native/
-  else
-    install_dir=$NETCOREENG_INSTALL_DIRECTORY
-  fi
-
-  echo $install_dir
-  return 0
-}
-
-function GetTempDirectory {
-
-  echo $(GetNativeInstallDirectory)temp/
-  return 0
-}
-
-function ExpandZip {
-  local zip_path=$1
-  local output_directory=$2
-  local force=${3:-false}
-
-  echo "Extracting $zip_path to $output_directory"
-  if [[ -d $output_directory ]] && [[ $force = false ]]; then
-    echo "Directory '$output_directory' already exists, skipping extract"
-    return 0
-  fi
-
-  if [[ -d $output_directory ]]; then
-    echo "'Force flag enabled, but '$output_directory' exists. Removing directory"
-    rm -rf $output_directory
-    if [[ $? != 0 ]]; then
-      echo Unable to remove '$output_directory'>&2
-      return 1
-    fi
-  fi
-
-  echo "Creating directory: '$output_directory'"
-  mkdir -p $output_directory
-
-  echo "Extracting archive"
-  tar -xf $zip_path -C $output_directory
-  if [[ $? != 0 ]]; then
-    echo "Unable to extract '$zip_path'" >&2
-    return 1
-  fi
-
-  return 0
-}
-
-function GetCurrentOS {
-  local unameOut="$(uname -s)"
-  case $unameOut in
-    Linux*)     echo "Linux";;
-    Darwin*)    echo "MacOS";;
-  esac
-  return 0
-}
-
-function GetFile {
-  local uri=$1
-  local path=$2
-  local force=${3:-false}
-  local download_retries=${4:-5}
-  local retry_wait_time_seconds=${5:-30}
-
-  if [[ -f $path ]]; then
-    if [[ $force = false ]]; then
-      echo "File '$path' already exists. Skipping download"
-      return 0
-    else
-      rm -rf $path
-    fi
-  fi
-
-  if [[ -f $uri ]]; then
-    echo "'$uri' is a file path, copying file to '$path'"
-    cp $uri $path
-    return $?
-  fi
-
-  echo "Downloading $uri"
-  # Use curl if available, otherwise use wget
-  if command -v curl > /dev/null; then
-    curl "$uri" -sSL --retry $download_retries --retry-delay $retry_wait_time_seconds --create-dirs -o "$path" --fail
-  else
-    wget -q -O "$path" "$uri" --tries="$download_retries"
-  fi
-
-  return $?
-}
-
-function GetTempPathFileName {
-  local path=$1
-
-  local temp_dir=$(GetTempDirectory)
-  local temp_file_name=$(basename $path)
-  echo $temp_dir$temp_file_name
-  return 0
-}
-
-function DownloadAndExtract {
-  local uri=$1
-  local installDir=$2
-  local force=${3:-false}
-  local download_retries=${4:-5}
-  local retry_wait_time_seconds=${5:-30}
-
-  local temp_tool_path=$(GetTempPathFileName $uri)
-
-  echo "downloading to: $temp_tool_path"
-
-  # Download file
-  GetFile "$uri" "$temp_tool_path" $force $download_retries $retry_wait_time_seconds
-  if [[ $? != 0 ]]; then
-    echo "Failed to download '$uri' to '$temp_tool_path'." >&2
-    return 1
-  fi
-
-  # Extract File
-  echo "extracting from  $temp_tool_path to $installDir"
-  ExpandZip "$temp_tool_path" "$installDir" $force $download_retries $retry_wait_time_seconds
-  if [[ $? != 0 ]]; then
-    echo "Failed to extract '$temp_tool_path' to '$installDir'." >&2
-    return 1
-  fi
-
-  return 0
-}
-
-function NewScriptShim {
-  local shimpath=$1
-  local tool_file_path=$2
-  local force=${3:-false}
-
-  echo "Generating '$shimpath' shim"
-  if [[ -f $shimpath ]]; then
-    if [[ $force = false ]]; then
-      echo "File '$shimpath' already exists." >&2
-      return 1
-    else
-      rm -rf $shimpath
-    fi
-  fi
-  
-  if [[ ! -f $tool_file_path ]]; then
-    echo "Specified tool file path:'$tool_file_path' does not exist" >&2
-    return 1
-  fi
-
-  local shim_contents=$'#!/usr/bin/env bash\n'
-  shim_contents+="SHIMARGS="$'$1\n'
-  shim_contents+="$tool_file_path"$' $SHIMARGS\n'
-
-  # Write shim file
-  echo "$shim_contents" > $shimpath
-
-  chmod +x $shimpath
-
-  echo "Finished generating shim '$shimpath'"
-
-  return $?
-}
-
+IyEvdXNyL2Jpbi9lbnYgYmFzaAoKZnVuY3Rpb24gR2V0TmF0aXZlSW5zdGFs
+bERpcmVjdG9yeSB7CiAgbG9jYWwgaW5zdGFsbF9kaXIKCiAgaWYgW1sgLXog
+JE5FVENPUkVFTkdfSU5TVEFMTF9ESVJFQ1RPUlkgXV07IHRoZW4KICAgIGlu
+c3RhbGxfZGlyPSRIT01FLy5uZXRjb3JlZW5nL25hdGl2ZS8KICBlbHNlCiAg
+ICBpbnN0YWxsX2Rpcj0kTkVUQ09SRUVOR19JTlNUQUxMX0RJUkVDVE9SWQog
+IGZpCgogIGVjaG8gJGluc3RhbGxfZGlyCiAgcmV0dXJuIDAKfQoKZnVuY3Rp
+b24gR2V0VGVtcERpcmVjdG9yeSB7CgogIGVjaG8gJChHZXROYXRpdmVJbnN0
+YWxsRGlyZWN0b3J5KXRlbXAvCiAgcmV0dXJuIDAKfQoKZnVuY3Rpb24gRXhw
+YW5kWmlwIHsKICBsb2NhbCB6aXBfcGF0aD0kMQogIGxvY2FsIG91dHB1dF9k
+aXJlY3Rvcnk9JDIKICBsb2NhbCBmb3JjZT0kezM6LWZhbHNlfQoKICBlY2hv
+ICJFeHRyYWN0aW5nICR6aXBfcGF0aCB0byAkb3V0cHV0X2RpcmVjdG9yeSIK
+ICBpZiBbWyAtZCAkb3V0cHV0X2RpcmVjdG9yeSBdXSAmJiBbWyAkZm9yY2Ug
+PSBmYWxzZSBdXTsgdGhlbgogICAgZWNobyAiRGlyZWN0b3J5ICckb3V0cHV0
+X2RpcmVjdG9yeScgYWxyZWFkeSBleGlzdHMsIHNraXBwaW5nIGV4dHJhY3Qi
+CiAgICByZXR1cm4gMAogIGZpCgogIGlmIFtbIC1kICRvdXRwdXRfZGlyZWN0
+b3J5IF1dOyB0aGVuCiAgICBlY2hvICInRm9yY2UgZmxhZyBlbmFibGVkLCBi
+dXQgJyRvdXRwdXRfZGlyZWN0b3J5JyBleGlzdHMuIFJlbW92aW5nIGRpcmVj
+dG9yeSIKICAgIHJtIC1yZiAkb3V0cHV0X2RpcmVjdG9yeQogICAgaWYgW1sg
+JD8gIT0gMCBdXTsgdGhlbgogICAgICBlY2hvIFVuYWJsZSB0byByZW1vdmUg
+JyRvdXRwdXRfZGlyZWN0b3J5Jz4mMgogICAgICByZXR1cm4gMQogICAgZmkK
+ICBmaQoKICBlY2hvICJDcmVhdGluZyBkaXJlY3Rvcnk6ICckb3V0cHV0X2Rp
+cmVjdG9yeSciCiAgbWtkaXIgLXAgJG91dHB1dF9kaXJlY3RvcnkKCiAgZWNo
+byAiRXh0cmFjdGluZyBhcmNoaXZlIgogIHRhciAteGYgJHppcF9wYXRoIC1D
+ICRvdXRwdXRfZGlyZWN0b3J5CiAgaWYgW1sgJD8gIT0gMCBdXTsgdGhlbgog
+ICAgZWNobyAiVW5hYmxlIHRvIGV4dHJhY3QgJyR6aXBfcGF0aCciID4mMgog
+ICAgcmV0dXJuIDEKICBmaQoKICByZXR1cm4gMAp9CgpmdW5jdGlvbiBHZXRD
+dXJyZW50T1MgewogIGxvY2FsIHVuYW1lT3V0PSIkKHVuYW1lIC1zKSIKICBj
+YXNlICR1bmFtZU91dCBpbgogICAgTGludXgqKSAgICAgZWNobyAiTGludXgi
+OzsKICAgIERhcndpbiopICAgIGVjaG8gIk1hY09TIjs7CiAgZXNhYwogIHJl
+dHVybiAwCn0KCmZ1bmN0aW9uIEdldEZpbGUgewogIGxvY2FsIHVyaT0kMQog
+IGxvY2FsIHBhdGg9JDIKICBsb2NhbCBmb3JjZT0kezM6LWZhbHNlfQogIGxv
+Y2FsIGRvd25sb2FkX3JldHJpZXM9JHs0Oi01fQogIGxvY2FsIHJldHJ5X3dh
+aXRfdGltZV9zZWNvbmRzPSR7NTotMzB9CgogIGlmIFtbIC1mICRwYXRoIF1d
+OyB0aGVuCiAgICBpZiBbWyAkZm9yY2UgPSBmYWxzZSBdXTsgdGhlbgogICAg
+ICBlY2hvICJGaWxlICckcGF0aCcgYWxyZWFkeSBleGlzdHMuIFNraXBwaW5n
+IGRvd25sb2FkIgogICAgICByZXR1cm4gMAogICAgZWxzZQogICAgICBybSAt
+cmYgJHBhdGgKICAgIGZpCiAgZmkKCiAgaWYgW1sgLWYgJHVyaSBdXTsgdGhl
+bgogICAgZWNobyAiJyR1cmknIGlzIGEgZmlsZSBwYXRoLCBjb3B5aW5nIGZp
+bGUgdG8gJyRwYXRoJyIKICAgIGNwICR1cmkgJHBhdGgKICAgIHJldHVybiAk
+PwogIGZpCgogIGVjaG8gIkRvd25sb2FkaW5nICR1cmkiCiAgIyBVc2UgY3Vy
+bCBpZiBhdmFpbGFibGUsIG90aGVyd2lzZSB1c2Ugd2dldAogIGlmIGNvbW1h
+bmQgLXYgY3VybCA+IC9kZXYvbnVsbDsgdGhlbgogICAgY3VybCAiJHVyaSIg
+LXNTTCAtLXJldHJ5ICRkb3dubG9hZF9yZXRyaWVzIC0tcmV0cnktZGVsYXkg
+JHJldHJ5X3dhaXRfdGltZV9zZWNvbmRzIC0tY3JlYXRlLWRpcnMgLW8gIiRw
+YXRoIiAtLWZhaWwKICBlbHNlCiAgICB3Z2V0IC1xIC1PICIkcGF0aCIgIiR1
+cmkiIC0tdHJpZXM9IiRkb3dubG9hZF9yZXRyaWVzIgogIGZpCgogIHJldHVy
+biAkPwp9CgpmdW5jdGlvbiBHZXRUZW1wUGF0aEZpbGVOYW1lIHsKICBsb2Nh
+bCBwYXRoPSQxCgogIGxvY2FsIHRlbXBfZGlyPSQoR2V0VGVtcERpcmVjdG9y
+eSkKICBsb2NhbCB0ZW1wX2ZpbGVfbmFtZT0kKGJhc2VuYW1lICRwYXRoKQog
+IGVjaG8gJHRlbXBfZGlyJHRlbXBfZmlsZV9uYW1lCiAgcmV0dXJuIDAKfQoK
+ZnVuY3Rpb24gRG93bmxvYWRBbmRFeHRyYWN0IHsKICBsb2NhbCB1cmk9JDEK
+ICBsb2NhbCBpbnN0YWxsRGlyPSQyCiAgbG9jYWwgZm9yY2U9JHszOi1mYWxz
+ZX0KICBsb2NhbCBkb3dubG9hZF9yZXRyaWVzPSR7NDotNX0KICBsb2NhbCBy
+ZXRyeV93YWl0X3RpbWVfc2Vjb25kcz0kezU6LTMwfQoKICBsb2NhbCB0ZW1w
+X3Rvb2xfcGF0aD0kKEdldFRlbXBQYXRoRmlsZU5hbWUgJHVyaSkKCiAgZWNo
+byAiZG93bmxvYWRpbmcgdG86ICR0ZW1wX3Rvb2xfcGF0aCIKCiAgIyBEb3du
+bG9hZCBmaWxlCiAgR2V0RmlsZSAiJHVyaSIgIiR0ZW1wX3Rvb2xfcGF0aCIg
+JGZvcmNlICRkb3dubG9hZF9yZXRyaWVzICRyZXRyeV93YWl0X3RpbWVfc2Vj
+b25kcwogIGlmIFtbICQ/ICE9IDAgXV07IHRoZW4KICAgIGVjaG8gIkZhaWxl
+ZCB0byBkb3dubG9hZCAnJHVyaScgdG8gJyR0ZW1wX3Rvb2xfcGF0aCcuIiA+
+JjIKICAgIHJldHVybiAxCiAgZmkKCiAgIyBFeHRyYWN0IEZpbGUKICBlY2hv
+ICJleHRyYWN0aW5nIGZyb20gICR0ZW1wX3Rvb2xfcGF0aCB0byAkaW5zdGFs
+bERpciIKICBFeHBhbmRaaXAgIiR0ZW1wX3Rvb2xfcGF0aCIgIiRpbnN0YWxs
+RGlyIiAkZm9yY2UgJGRvd25sb2FkX3JldHJpZXMgJHJldHJ5X3dhaXRfdGlt
+ZV9zZWNvbmRzCiAgaWYgW1sgJD8gIT0gMCBdXTsgdGhlbgogICAgZWNobyAi
+RmFpbGVkIHRvIGV4dHJhY3QgJyR0ZW1wX3Rvb2xfcGF0aCcgdG8gJyRpbnN0
+YWxsRGlyJy4iID4mMgogICAgcmV0dXJuIDEKICBmaQoKICByZXR1cm4gMAp9
+CgpmdW5jdGlvbiBOZXdTY3JpcHRTaGltIHsKICBsb2NhbCBzaGltcGF0aD0k
+MQogIGxvY2FsIHRvb2xfZmlsZV9wYXRoPSQyCiAgbG9jYWwgZm9yY2U9JHsz
+Oi1mYWxzZX0KCiAgZWNobyAiR2VuZXJhdGluZyAnJHNoaW1wYXRoJyBzaGlt
+IgogIGlmIFtbIC1mICRzaGltcGF0aCBdXTsgdGhlbgogICAgaWYgW1sgJGZv
+cmNlID0gZmFsc2UgXV07IHRoZW4KICAgICAgZWNobyAiRmlsZSAnJHNoaW1w
+YXRoJyBhbHJlYWR5IGV4aXN0cy4iID4mMgogICAgICByZXR1cm4gMQogICAg
+ZWxzZQogICAgICBybSAtcmYgJHNoaW1wYXRoCiAgICBmaQogIGZpCiAgCiAg
+aWYgW1sgISAtZiAkdG9vbF9maWxlX3BhdGggXV07IHRoZW4KICAgIGVjaG8g
+IlNwZWNpZmllZCB0b29sIGZpbGUgcGF0aDonJHRvb2xfZmlsZV9wYXRoJyBk
+b2VzIG5vdCBleGlzdCIgPiYyCiAgICByZXR1cm4gMQogIGZpCgogIGxvY2Fs
+IHNoaW1fY29udGVudHM9JCcjIS91c3IvYmluL2VudiBiYXNoXG4nCiAgc2hp
+bV9jb250ZW50cys9IlNISU1BUkdTPSIkJyQxXG4nCiAgc2hpbV9jb250ZW50
+cys9IiR0b29sX2ZpbGVfcGF0aCIkJyAkU0hJTUFSR1NcbicKCiAgIyBXcml0
+ZSBzaGltIGZpbGUKICBlY2hvICIkc2hpbV9jb250ZW50cyIgPiAkc2hpbXBh
+dGgKCiAgY2htb2QgK3ggJHNoaW1wYXRoCgogIGVjaG8gIkZpbmlzaGVkIGdl
+bmVyYXRpbmcgc2hpbSAnJHNoaW1wYXRoJyIKCiAgcmV0dXJuICQ/Cn0KCg==

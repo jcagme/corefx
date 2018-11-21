@@ -1,107 +1,84 @@
-[CmdletBinding(PositionalBinding=$false)]
-Param(
-  [string] $configuration = "Debug",
-  [string] $projects = "",
-  [string] $verbosity = "minimal",
-  [string] $msbuildEngine = $null,
-  [bool] $warnaserror = $true,
-  [bool] $nodereuse = $true,
-  [switch] $restore,
-  [switch] $deployDeps,
-  [switch] $build,
-  [switch] $rebuild,
-  [switch] $deploy,
-  [switch] $test,
-  [switch] $integrationTest,
-  [switch] $performanceTest,
-  [switch] $sign,
-  [switch] $pack,
-  [switch] $publish,
-  [switch] $publishBuildAssets,
-  [switch] $ci,
-  [switch] $prepareMachine,
-  [switch] $help,
-  [Parameter(ValueFromRemainingArguments=$true)][String[]]$properties
-)
-
-. $PSScriptRoot\tools.ps1
-
-function Print-Usage() {
-    Write-Host "Common settings:"
-    Write-Host "  -configuration <value>  Build configuration Debug, Release"
-    Write-Host "  -verbosity <value>      Msbuild verbosity (q[uiet], m[inimal], n[ormal], d[etailed], and diag[nostic])"
-    Write-Host "  -help                   Print help and exit"
-    Write-Host ""
-
-    Write-Host "Actions:"
-    Write-Host "  -restore                Restore dependencies"
-    Write-Host "  -build                  Build solution"
-    Write-Host "  -rebuild                Rebuild solution"
-    Write-Host "  -deploy                 Deploy built VSIXes"
-    Write-Host "  -deployDeps             Deploy dependencies (e.g. VSIXes for integration tests)"
-    Write-Host "  -test                   Run all unit tests in the solution"
-    Write-Host "  -pack                   Package build outputs into NuGet packages and Willow components"
-    Write-Host "  -integrationTest        Run all integration tests in the solution"
-    Write-Host "  -performanceTest        Run all performance tests in the solution"
-    Write-Host "  -sign                   Sign build outputs"
-    Write-Host "  -publish                Publish artifacts (e.g. symbols)"
-    Write-Host "  -publishBuildAssets        Push assets to BAR"
-    Write-Host ""
-
-    Write-Host "Advanced settings:"
-    Write-Host "  -projects <value>       Semi-colon delimited list of sln/proj's to build. Globbing is supported (*.sln)"
-    Write-Host "  -ci                     Set when running on CI server"
-    Write-Host "  -prepareMachine         Prepare machine for CI run"
-    Write-Host "  -msbuildEngine <value>  Msbuild engine to use to run build ('dotnet', 'vs', or unspecified)."
-    Write-Host ""
-    Write-Host "Command line arguments not listed above are passed thru to msbuild."
-    Write-Host "The above arguments can be shortened as much as to be unambiguous (e.g. -co for configuration, -t for test, etc.)."
-}
-
-if ($help -or (($properties -ne $null) -and ($properties.Contains("/help") -or $properties.Contains("/?")))) {
-  Print-Usage
-  exit 0
-}
-
-try {
-  if ($projects -eq "") {
-    $projects = Join-Path $RepoRoot "*.sln"
-  }
-
-  InitializeTools
-
-  $BuildLog = Join-Path $LogDir "Build.binlog"
-
-  MSBuild $ToolsetBuildProj `
-    /bl:$BuildLog `
-    /p:Configuration=$configuration `
-    /p:Projects=$projects `
-    /p:RepoRoot=$RepoRoot `
-    /p:Restore=$restore `
-    /p:DeployDeps=$deployDeps `
-    /p:Build=$build `
-    /p:Rebuild=$rebuild `
-    /p:Deploy=$deploy `
-    /p:Test=$test `
-    /p:Pack=$pack `
-    /p:IntegrationTest=$integrationTest `
-    /p:PerformanceTest=$performanceTest `
-    /p:Sign=$sign `
-    /p:Publish=$publish `
-    /p:PublishBuildAssets=$publishBuildAssets `
-    /p:ContinuousIntegrationBuild=$ci `
-    @properties
-
-  if ($lastExitCode -ne 0) {
-    Write-Host "Build Failed (exit code '$lastExitCode'). See log: $BuildLog" -ForegroundColor Red
-    ExitWithExitCode $lastExitCode
-  }
-
-  ExitWithExitCode $lastExitCode
-}
-catch {
-  Write-Host $_
-  Write-Host $_.Exception
-  Write-Host $_.ScriptStackTrace
-  ExitWithExitCode 1
-}
+W0NtZGxldEJpbmRpbmcoUG9zaXRpb25hbEJpbmRpbmc9JGZhbHNlKV0KUGFy
+YW0oCiAgW3N0cmluZ10gJGNvbmZpZ3VyYXRpb24gPSAiRGVidWciLAogIFtz
+dHJpbmddICRwcm9qZWN0cyA9ICIiLAogIFtzdHJpbmddICR2ZXJib3NpdHkg
+PSAibWluaW1hbCIsCiAgW3N0cmluZ10gJG1zYnVpbGRFbmdpbmUgPSAkbnVs
+bCwKICBbYm9vbF0gJHdhcm5hc2Vycm9yID0gJHRydWUsCiAgW2Jvb2xdICRu
+b2RlcmV1c2UgPSAkdHJ1ZSwKICBbc3dpdGNoXSAkZXhlY3V0ZSwKICBbc3dp
+dGNoXSAkcmVzdG9yZSwKICBbc3dpdGNoXSAkZGVwbG95RGVwcywKICBbc3dp
+dGNoXSAkYnVpbGQsCiAgW3N3aXRjaF0gJHJlYnVpbGQsCiAgW3N3aXRjaF0g
+JGRlcGxveSwKICBbc3dpdGNoXSAkdGVzdCwKICBbc3dpdGNoXSAkaW50ZWdy
+YXRpb25UZXN0LAogIFtzd2l0Y2hdICRwZXJmb3JtYW5jZVRlc3QsCiAgW3N3
+aXRjaF0gJHNpZ24sCiAgW3N3aXRjaF0gJHBhY2ssCiAgW3N3aXRjaF0gJHB1
+Ymxpc2gsCiAgW3N3aXRjaF0gJHB1Ymxpc2hCdWlsZEFzc2V0cywKICBbc3dp
+dGNoXSAkY2ksCiAgW3N3aXRjaF0gJHByZXBhcmVNYWNoaW5lLAogIFtzd2l0
+Y2hdICRoZWxwLAogIFtQYXJhbWV0ZXIoVmFsdWVGcm9tUmVtYWluaW5nQXJn
+dW1lbnRzPSR0cnVlKV1bU3RyaW5nW11dJHByb3BlcnRpZXMKKQoKLiAkUFNT
+Y3JpcHRSb290XHRvb2xzLnBzMQoKZnVuY3Rpb24gUHJpbnQtVXNhZ2UoKSB7
+CiAgICBXcml0ZS1Ib3N0ICJDb21tb24gc2V0dGluZ3M6IgogICAgV3JpdGUt
+SG9zdCAiICAtY29uZmlndXJhdGlvbiA8dmFsdWU+ICBCdWlsZCBjb25maWd1
+cmF0aW9uIERlYnVnLCBSZWxlYXNlIgogICAgV3JpdGUtSG9zdCAiICAtdmVy
+Ym9zaXR5IDx2YWx1ZT4gICAgICBNc2J1aWxkIHZlcmJvc2l0eSAocVt1aWV0
+XSwgbVtpbmltYWxdLCBuW29ybWFsXSwgZFtldGFpbGVkXSwgYW5kIGRpYWdb
+bm9zdGljXSkiCiAgICBXcml0ZS1Ib3N0ICIgIC1oZWxwICAgICAgICAgICAg
+ICAgICAgIFByaW50IGhlbHAgYW5kIGV4aXQiCiAgICBXcml0ZS1Ib3N0ICIi
+CgogICAgV3JpdGUtSG9zdCAiQWN0aW9uczoiCiAgICBXcml0ZS1Ib3N0ICIg
+IC1yZXN0b3JlICAgICAgICAgICAgICAgIFJlc3RvcmUgZGVwZW5kZW5jaWVz
+IgogICAgV3JpdGUtSG9zdCAiICAtYnVpbGQgICAgICAgICAgICAgICAgICBC
+dWlsZCBzb2x1dGlvbiIKICAgIFdyaXRlLUhvc3QgIiAgLXJlYnVpbGQgICAg
+ICAgICAgICAgICAgUmVidWlsZCBzb2x1dGlvbiIKICAgIFdyaXRlLUhvc3Qg
+IiAgLWRlcGxveSAgICAgICAgICAgICAgICAgRGVwbG95IGJ1aWx0IFZTSVhl
+cyIKICAgIFdyaXRlLUhvc3QgIiAgLWRlcGxveURlcHMgICAgICAgICAgICAg
+RGVwbG95IGRlcGVuZGVuY2llcyAoZS5nLiBWU0lYZXMgZm9yIGludGVncmF0
+aW9uIHRlc3RzKSIKICAgIFdyaXRlLUhvc3QgIiAgLXRlc3QgICAgICAgICAg
+ICAgICAgICAgUnVuIGFsbCB1bml0IHRlc3RzIGluIHRoZSBzb2x1dGlvbiIK
+ICAgIFdyaXRlLUhvc3QgIiAgLXBhY2sgICAgICAgICAgICAgICAgICAgUGFj
+a2FnZSBidWlsZCBvdXRwdXRzIGludG8gTnVHZXQgcGFja2FnZXMgYW5kIFdp
+bGxvdyBjb21wb25lbnRzIgogICAgV3JpdGUtSG9zdCAiICAtaW50ZWdyYXRp
+b25UZXN0ICAgICAgICBSdW4gYWxsIGludGVncmF0aW9uIHRlc3RzIGluIHRo
+ZSBzb2x1dGlvbiIKICAgIFdyaXRlLUhvc3QgIiAgLXBlcmZvcm1hbmNlVGVz
+dCAgICAgICAgUnVuIGFsbCBwZXJmb3JtYW5jZSB0ZXN0cyBpbiB0aGUgc29s
+dXRpb24iCiAgICBXcml0ZS1Ib3N0ICIgIC1zaWduICAgICAgICAgICAgICAg
+ICAgIFNpZ24gYnVpbGQgb3V0cHV0cyIKICAgIFdyaXRlLUhvc3QgIiAgLXB1
+Ymxpc2ggICAgICAgICAgICAgICAgUHVibGlzaCBhcnRpZmFjdHMgKGUuZy4g
+c3ltYm9scykiCiAgICBXcml0ZS1Ib3N0ICIgIC1wdWJsaXNoQnVpbGRBc3Nl
+dHMgICAgICAgIFB1c2ggYXNzZXRzIHRvIEJBUiIKICAgIFdyaXRlLUhvc3Qg
+IiIKCiAgICBXcml0ZS1Ib3N0ICJBZHZhbmNlZCBzZXR0aW5nczoiCiAgICBX
+cml0ZS1Ib3N0ICIgIC1wcm9qZWN0cyA8dmFsdWU+ICAgICAgIFNlbWktY29s
+b24gZGVsaW1pdGVkIGxpc3Qgb2Ygc2xuL3Byb2oncyB0byBidWlsZC4gR2xv
+YmJpbmcgaXMgc3VwcG9ydGVkICgqLnNsbikiCiAgICBXcml0ZS1Ib3N0ICIg
+IC1jaSAgICAgICAgICAgICAgICAgICAgIFNldCB3aGVuIHJ1bm5pbmcgb24g
+Q0kgc2VydmVyIgogICAgV3JpdGUtSG9zdCAiICAtcHJlcGFyZU1hY2hpbmUg
+ICAgICAgICBQcmVwYXJlIG1hY2hpbmUgZm9yIENJIHJ1biIKICAgIFdyaXRl
+LUhvc3QgIiAgLW1zYnVpbGRFbmdpbmUgPHZhbHVlPiAgTXNidWlsZCBlbmdp
+bmUgdG8gdXNlIHRvIHJ1biBidWlsZCAoJ2RvdG5ldCcsICd2cycsIG9yIHVu
+c3BlY2lmaWVkKS4iCiAgICBXcml0ZS1Ib3N0ICIiCiAgICBXcml0ZS1Ib3N0
+ICJDb21tYW5kIGxpbmUgYXJndW1lbnRzIG5vdCBsaXN0ZWQgYWJvdmUgYXJl
+IHBhc3NlZCB0aHJ1IHRvIG1zYnVpbGQuIgogICAgV3JpdGUtSG9zdCAiVGhl
+IGFib3ZlIGFyZ3VtZW50cyBjYW4gYmUgc2hvcnRlbmVkIGFzIG11Y2ggYXMg
+dG8gYmUgdW5hbWJpZ3VvdXMgKGUuZy4gLWNvIGZvciBjb25maWd1cmF0aW9u
+LCAtdCBmb3IgdGVzdCwgZXRjLikuIgp9CgppZiAoJGhlbHAgLW9yICgoJHBy
+b3BlcnRpZXMgLW5lICRudWxsKSAtYW5kICgkcHJvcGVydGllcy5Db250YWlu
+cygiL2hlbHAiKSAtb3IgJHByb3BlcnRpZXMuQ29udGFpbnMoIi8/IikpKSkg
+ewogIFByaW50LVVzYWdlCiAgZXhpdCAwCn0KCnRyeSB7CiAgaWYgKCRwcm9q
+ZWN0cyAtZXEgIiIpIHsKICAgICRwcm9qZWN0cyA9IEpvaW4tUGF0aCAkUmVw
+b1Jvb3QgIiouc2xuIgogIH0KCiAgSW5pdGlhbGl6ZVRvb2xzCgogICRCdWls
+ZExvZyA9IEpvaW4tUGF0aCAkTG9nRGlyICJCdWlsZC5iaW5sb2ciCgogIE1T
+QnVpbGQgJFRvb2xzZXRCdWlsZFByb2ogYAogICAgL2JsOiRCdWlsZExvZyBg
+CiAgICAvcDpDb25maWd1cmF0aW9uPSRjb25maWd1cmF0aW9uIGAKICAgIC9w
+OlByb2plY3RzPSRwcm9qZWN0cyBgCiAgICAvcDpSZXBvUm9vdD0kUmVwb1Jv
+b3QgYAogICAgL3A6UmVzdG9yZT0kcmVzdG9yZSBgCiAgICAvcDpEZXBsb3lE
+ZXBzPSRkZXBsb3lEZXBzIGAKICAgIC9wOkJ1aWxkPSRidWlsZCBgCiAgICAv
+cDpSZWJ1aWxkPSRyZWJ1aWxkIGAKICAgIC9wOkRlcGxveT0kZGVwbG95IGAK
+ICAgIC9wOlRlc3Q9JHRlc3QgYAogICAgL3A6UGFjaz0kcGFjayBgCiAgICAv
+cDpJbnRlZ3JhdGlvblRlc3Q9JGludGVncmF0aW9uVGVzdCBgCiAgICAvcDpQ
+ZXJmb3JtYW5jZVRlc3Q9JHBlcmZvcm1hbmNlVGVzdCBgCiAgICAvcDpTaWdu
+PSRzaWduIGAKICAgIC9wOlB1Ymxpc2g9JHB1Ymxpc2ggYAogICAgL3A6RXhl
+Y3V0ZT0kZXhlY3V0ZSBgCiAgICAvcDpDb250aW51b3VzSW50ZWdyYXRpb25C
+dWlsZD0kY2kgYAogICAgQHByb3BlcnRpZXMKCiAgaWYgKCRsYXN0RXhpdENv
+ZGUgLW5lIDApIHsKICAgIFdyaXRlLUhvc3QgIkJ1aWxkIEZhaWxlZCAoZXhp
+dCBjb2RlICckbGFzdEV4aXRDb2RlJykuIFNlZSBsb2c6ICRCdWlsZExvZyIg
+LUZvcmVncm91bmRDb2xvciBSZWQKICAgIEV4aXRXaXRoRXhpdENvZGUgJGxh
+c3RFeGl0Q29kZQogIH0KCiAgRXhpdFdpdGhFeGl0Q29kZSAkbGFzdEV4aXRD
+b2RlCn0KY2F0Y2ggewogIFdyaXRlLUhvc3QgJF8KICBXcml0ZS1Ib3N0ICRf
+LkV4Y2VwdGlvbgogIFdyaXRlLUhvc3QgJF8uU2NyaXB0U3RhY2tUcmFjZQog
+IEV4aXRXaXRoRXhpdENvZGUgMQp9Cg==

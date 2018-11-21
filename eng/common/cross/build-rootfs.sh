@@ -1,210 +1,141 @@
-#!/usr/bin/env bash
-
-usage()
-{
-    echo "Usage: $0 [BuildArch] [LinuxCodeName] [lldbx.y] [--skipunmount]"
-    echo "BuildArch can be: arm(default), armel, arm64, x86"
-    echo "LinuxCodeName - optional, Code name for Linux, can be: trusty(default), vivid, wily, xenial, zesty, bionic, alpine. If BuildArch is armel, LinuxCodeName is jessie(default) or tizen."
-    echo "lldbx.y - optional, LLDB version, can be: lldb3.6(default), lldb3.8, lldb3.9, lldb4.0, no-lldb. Ignored for alpine"
-    echo "--skipunmount - optional, will skip the unmount of rootfs folder."
-    exit 1
-}
-
-__LinuxCodeName=trusty
-__CrossDir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-__InitialDir=$PWD
-__BuildArch=arm
-__UbuntuArch=armhf
-__UbuntuRepo="http://ports.ubuntu.com/"
-__LLDB_Package="lldb-3.6-dev"
-__SkipUnmount=0
-
-# base development support
-__UbuntuPackages="build-essential"
-
-__AlpinePackages="alpine-base"
-__AlpinePackages+=" build-base"
-__AlpinePackages+=" linux-headers"
-__AlpinePackages+=" lldb-dev"
-__AlpinePackages+=" llvm-dev"
-
-# symlinks fixer
-__UbuntuPackages+=" symlinks"
-
-# CoreCLR and CoreFX dependencies
-__UbuntuPackages+=" libicu-dev"
-__UbuntuPackages+=" liblttng-ust-dev"
-__UbuntuPackages+=" libunwind8-dev"
-
-__AlpinePackages+=" gettext-dev"
-__AlpinePackages+=" icu-dev"
-__AlpinePackages+=" libunwind-dev"
-__AlpinePackages+=" lttng-ust-dev"
-
-# CoreFX dependencies
-__UbuntuPackages+=" libcurl4-openssl-dev"
-__UbuntuPackages+=" libkrb5-dev"
-__UbuntuPackages+=" libssl-dev"
-__UbuntuPackages+=" zlib1g-dev"
-
-__AlpinePackages+=" curl-dev"
-__AlpinePackages+=" krb5-dev"
-__AlpinePackages+=" openssl-dev"
-__AlpinePackages+=" zlib-dev"
-
-__UnprocessedBuildArgs=
-for i in "$@" ; do
-    lowerI="$(echo $i | awk '{print tolower($0)}')"
-    case $lowerI in
-        -?|-h|--help)
-            usage
-            exit 1
-            ;;
-        arm)
-            __BuildArch=arm
-            __UbuntuArch=armhf
-            __AlpineArch=armhf
-            __QEMUArch=arm
-            ;;
-        arm64)
-            __BuildArch=arm64
-            __UbuntuArch=arm64
-            __AlpineArch=aarch64
-            __QEMUArch=aarch64
-            ;;
-        armel)
-            __BuildArch=armel
-            __UbuntuArch=armel
-            __UbuntuRepo="http://ftp.debian.org/debian/"
-            __LinuxCodeName=jessie
-            ;;
-        x86)
-            __BuildArch=x86
-            __UbuntuArch=i386
-            __UbuntuRepo="http://archive.ubuntu.com/ubuntu/"
-            ;;
-        lldb3.6)
-            __LLDB_Package="lldb-3.6-dev"
-            ;;
-        lldb3.8)
-            __LLDB_Package="lldb-3.8-dev"
-            ;;
-        lldb3.9)
-            __LLDB_Package="liblldb-3.9-dev"
-            ;;
-        lldb4.0)
-            __LLDB_Package="liblldb-4.0-dev"
-            ;;
-        no-lldb)
-            unset __LLDB_Package
-            ;;
-        vivid)
-            if [ "$__LinuxCodeName" != "jessie" ]; then
-                __LinuxCodeName=vivid
-            fi
-            ;;
-        wily)
-            if [ "$__LinuxCodeName" != "jessie" ]; then
-                __LinuxCodeName=wily
-            fi
-            ;;
-        xenial)
-            if [ "$__LinuxCodeName" != "jessie" ]; then
-                __LinuxCodeName=xenial
-            fi
-            ;;
-        zesty)
-            if [ "$__LinuxCodeName" != "jessie" ]; then
-                __LinuxCodeName=zesty
-            fi
-            ;;
-        bionic)
-            if [ "$__LinuxCodeName" != "jessie" ]; then
-                __LinuxCodeName=bionic
-            fi
-            ;;
-        jessie)
-            __LinuxCodeName=jessie
-            __UbuntuRepo="http://ftp.debian.org/debian/"
-            ;;
-        tizen)
-            if [ "$__BuildArch" != "armel" ]; then
-                echo "Tizen is available only for armel."
-                usage;
-                exit 1;
-            fi
-            __LinuxCodeName=
-            __UbuntuRepo=
-            __Tizen=tizen
-            ;;
-        alpine)
-            __LinuxCodeName=alpine
-            __UbuntuRepo=
-            ;;
-        --skipunmount)
-            __SkipUnmount=1
-            ;;
-        *)
-            __UnprocessedBuildArgs="$__UnprocessedBuildArgs $i"
-            ;;
-    esac
-done
-
-if [ "$__BuildArch" == "armel" ]; then
-    __LLDB_Package="lldb-3.5-dev"
-fi
-__UbuntuPackages+=" ${__LLDB_Package:-}"
-
-__RootfsDir="$__CrossDir/rootfs/$__BuildArch"
-
-if [[ -n "$ROOTFS_DIR" ]]; then
-    __RootfsDir=$ROOTFS_DIR
-fi
-
-if [ -d "$__RootfsDir" ]; then
-    if [ $__SkipUnmount == 0 ]; then
-        umount $__RootfsDir/*
-    fi
-    rm -rf $__RootfsDir
-fi
-
-if [[ "$__LinuxCodeName" == "alpine" ]]; then
-    __ApkToolsVersion=2.9.1
-    __AlpineVersion=3.7
-    __ApkToolsDir=$(mktemp -d)
-    wget https://github.com/alpinelinux/apk-tools/releases/download/v$__ApkToolsVersion/apk-tools-$__ApkToolsVersion-x86_64-linux.tar.gz -P $__ApkToolsDir
-    tar -xf $__ApkToolsDir/apk-tools-$__ApkToolsVersion-x86_64-linux.tar.gz -C $__ApkToolsDir
-    mkdir -p $__RootfsDir/usr/bin
-    cp -v /usr/bin/qemu-$__QEMUArch-static $__RootfsDir/usr/bin
-    $__ApkToolsDir/apk-tools-$__ApkToolsVersion/apk \
-      -X http://dl-cdn.alpinelinux.org/alpine/v$__AlpineVersion/main \
-      -X http://dl-cdn.alpinelinux.org/alpine/v$__AlpineVersion/community \
-      -X http://dl-cdn.alpinelinux.org/alpine/edge/testing \
-      -U --allow-untrusted --root $__RootfsDir --arch $__AlpineArch --initdb \
-      add $__AlpinePackages
-    rm -r $__ApkToolsDir
-elif [[ -n $__LinuxCodeName ]]; then
-    qemu-debootstrap --arch $__UbuntuArch $__LinuxCodeName $__RootfsDir $__UbuntuRepo
-    cp $__CrossDir/$__BuildArch/sources.list.$__LinuxCodeName $__RootfsDir/etc/apt/sources.list
-    chroot $__RootfsDir apt-get update
-    chroot $__RootfsDir apt-get -f -y install
-    chroot $__RootfsDir apt-get -y install $__UbuntuPackages
-    chroot $__RootfsDir symlinks -cr /usr
-
-    if [ $__SkipUnmount == 0 ]; then
-        umount $__RootfsDir/*
-    fi
-
-    if [[ "$__BuildArch" == "arm" && "$__LinuxCodeName" == "trusty" ]]; then
-        pushd $__RootfsDir
-        patch -p1 < $__CrossDir/$__BuildArch/trusty.patch
-        patch -p1 < $__CrossDir/$__BuildArch/trusty-lttng-2.4.patch
-        popd
-    fi
-elif [ "$__Tizen" == "tizen" ]; then
-    ROOTFS_DIR=$__RootfsDir $__CrossDir/$__BuildArch/tizen-build-rootfs.sh
-else
-    echo "Unsupported target platform."
-    usage;
-    exit 1
-fi
+IyEvdXNyL2Jpbi9lbnYgYmFzaAoKdXNhZ2UoKQp7CiAgICBlY2hvICJVc2Fn
+ZTogJDAgW0J1aWxkQXJjaF0gW0xpbnV4Q29kZU5hbWVdIFtsbGRieC55XSBb
+LS1za2lwdW5tb3VudF0iCiAgICBlY2hvICJCdWlsZEFyY2ggY2FuIGJlOiBh
+cm0oZGVmYXVsdCksIGFybWVsLCBhcm02NCwgeDg2IgogICAgZWNobyAiTGlu
+dXhDb2RlTmFtZSAtIG9wdGlvbmFsLCBDb2RlIG5hbWUgZm9yIExpbnV4LCBj
+YW4gYmU6IHRydXN0eShkZWZhdWx0KSwgdml2aWQsIHdpbHksIHhlbmlhbCwg
+emVzdHksIGJpb25pYywgYWxwaW5lLiBJZiBCdWlsZEFyY2ggaXMgYXJtZWws
+IExpbnV4Q29kZU5hbWUgaXMgamVzc2llKGRlZmF1bHQpIG9yIHRpemVuLiIK
+ICAgIGVjaG8gImxsZGJ4LnkgLSBvcHRpb25hbCwgTExEQiB2ZXJzaW9uLCBj
+YW4gYmU6IGxsZGIzLjYoZGVmYXVsdCksIGxsZGIzLjgsIGxsZGIzLjksIGxs
+ZGI0LjAsIG5vLWxsZGIuIElnbm9yZWQgZm9yIGFscGluZSIKICAgIGVjaG8g
+Ii0tc2tpcHVubW91bnQgLSBvcHRpb25hbCwgd2lsbCBza2lwIHRoZSB1bm1v
+dW50IG9mIHJvb3RmcyBmb2xkZXIuIgogICAgZXhpdCAxCn0KCl9fTGludXhD
+b2RlTmFtZT10cnVzdHkKX19Dcm9zc0Rpcj0kKCBjZCAiJCggZGlybmFtZSAi
+JHtCQVNIX1NPVVJDRVswXX0iICkiICYmIHB3ZCApCl9fSW5pdGlhbERpcj0k
+UFdECl9fQnVpbGRBcmNoPWFybQpfX1VidW50dUFyY2g9YXJtaGYKX19VYnVu
+dHVSZXBvPSJodHRwOi8vcG9ydHMudWJ1bnR1LmNvbS8iCl9fTExEQl9QYWNr
+YWdlPSJsbGRiLTMuNi1kZXYiCl9fU2tpcFVubW91bnQ9MAoKIyBiYXNlIGRl
+dmVsb3BtZW50IHN1cHBvcnQKX19VYnVudHVQYWNrYWdlcz0iYnVpbGQtZXNz
+ZW50aWFsIgoKX19BbHBpbmVQYWNrYWdlcz0iYWxwaW5lLWJhc2UiCl9fQWxw
+aW5lUGFja2FnZXMrPSIgYnVpbGQtYmFzZSIKX19BbHBpbmVQYWNrYWdlcys9
+IiBsaW51eC1oZWFkZXJzIgpfX0FscGluZVBhY2thZ2VzKz0iIGxsZGItZGV2
+IgpfX0FscGluZVBhY2thZ2VzKz0iIGxsdm0tZGV2IgoKIyBzeW1saW5rcyBm
+aXhlcgpfX1VidW50dVBhY2thZ2VzKz0iIHN5bWxpbmtzIgoKIyBDb3JlQ0xS
+IGFuZCBDb3JlRlggZGVwZW5kZW5jaWVzCl9fVWJ1bnR1UGFja2FnZXMrPSIg
+bGliaWN1LWRldiIKX19VYnVudHVQYWNrYWdlcys9IiBsaWJsdHRuZy11c3Qt
+ZGV2IgpfX1VidW50dVBhY2thZ2VzKz0iIGxpYnVud2luZDgtZGV2IgoKX19B
+bHBpbmVQYWNrYWdlcys9IiBnZXR0ZXh0LWRldiIKX19BbHBpbmVQYWNrYWdl
+cys9IiBpY3UtZGV2IgpfX0FscGluZVBhY2thZ2VzKz0iIGxpYnVud2luZC1k
+ZXYiCl9fQWxwaW5lUGFja2FnZXMrPSIgbHR0bmctdXN0LWRldiIKCiMgQ29y
+ZUZYIGRlcGVuZGVuY2llcwpfX1VidW50dVBhY2thZ2VzKz0iIGxpYmN1cmw0
+LW9wZW5zc2wtZGV2IgpfX1VidW50dVBhY2thZ2VzKz0iIGxpYmtyYjUtZGV2
+IgpfX1VidW50dVBhY2thZ2VzKz0iIGxpYnNzbC1kZXYiCl9fVWJ1bnR1UGFj
+a2FnZXMrPSIgemxpYjFnLWRldiIKCl9fQWxwaW5lUGFja2FnZXMrPSIgY3Vy
+bC1kZXYiCl9fQWxwaW5lUGFja2FnZXMrPSIga3JiNS1kZXYiCl9fQWxwaW5l
+UGFja2FnZXMrPSIgb3BlbnNzbC1kZXYiCl9fQWxwaW5lUGFja2FnZXMrPSIg
+emxpYi1kZXYiCgpfX1VucHJvY2Vzc2VkQnVpbGRBcmdzPQpmb3IgaSBpbiAi
+JEAiIDsgZG8KICAgIGxvd2VyST0iJChlY2hvICRpIHwgYXdrICd7cHJpbnQg
+dG9sb3dlcigkMCl9JykiCiAgICBjYXNlICRsb3dlckkgaW4KICAgICAgICAt
+P3wtaHwtLWhlbHApCiAgICAgICAgICAgIHVzYWdlCiAgICAgICAgICAgIGV4
+aXQgMQogICAgICAgICAgICA7OwogICAgICAgIGFybSkKICAgICAgICAgICAg
+X19CdWlsZEFyY2g9YXJtCiAgICAgICAgICAgIF9fVWJ1bnR1QXJjaD1hcm1o
+ZgogICAgICAgICAgICBfX0FscGluZUFyY2g9YXJtaGYKICAgICAgICAgICAg
+X19RRU1VQXJjaD1hcm0KICAgICAgICAgICAgOzsKICAgICAgICBhcm02NCkK
+ICAgICAgICAgICAgX19CdWlsZEFyY2g9YXJtNjQKICAgICAgICAgICAgX19V
+YnVudHVBcmNoPWFybTY0CiAgICAgICAgICAgIF9fQWxwaW5lQXJjaD1hYXJj
+aDY0CiAgICAgICAgICAgIF9fUUVNVUFyY2g9YWFyY2g2NAogICAgICAgICAg
+ICA7OwogICAgICAgIGFybWVsKQogICAgICAgICAgICBfX0J1aWxkQXJjaD1h
+cm1lbAogICAgICAgICAgICBfX1VidW50dUFyY2g9YXJtZWwKICAgICAgICAg
+ICAgX19VYnVudHVSZXBvPSJodHRwOi8vZnRwLmRlYmlhbi5vcmcvZGViaWFu
+LyIKICAgICAgICAgICAgX19MaW51eENvZGVOYW1lPWplc3NpZQogICAgICAg
+ICAgICA7OwogICAgICAgIHg4NikKICAgICAgICAgICAgX19CdWlsZEFyY2g9
+eDg2CiAgICAgICAgICAgIF9fVWJ1bnR1QXJjaD1pMzg2CiAgICAgICAgICAg
+IF9fVWJ1bnR1UmVwbz0iaHR0cDovL2FyY2hpdmUudWJ1bnR1LmNvbS91YnVu
+dHUvIgogICAgICAgICAgICA7OwogICAgICAgIGxsZGIzLjYpCiAgICAgICAg
+ICAgIF9fTExEQl9QYWNrYWdlPSJsbGRiLTMuNi1kZXYiCiAgICAgICAgICAg
+IDs7CiAgICAgICAgbGxkYjMuOCkKICAgICAgICAgICAgX19MTERCX1BhY2th
+Z2U9ImxsZGItMy44LWRldiIKICAgICAgICAgICAgOzsKICAgICAgICBsbGRi
+My45KQogICAgICAgICAgICBfX0xMREJfUGFja2FnZT0ibGlibGxkYi0zLjkt
+ZGV2IgogICAgICAgICAgICA7OwogICAgICAgIGxsZGI0LjApCiAgICAgICAg
+ICAgIF9fTExEQl9QYWNrYWdlPSJsaWJsbGRiLTQuMC1kZXYiCiAgICAgICAg
+ICAgIDs7CiAgICAgICAgbm8tbGxkYikKICAgICAgICAgICAgdW5zZXQgX19M
+TERCX1BhY2thZ2UKICAgICAgICAgICAgOzsKICAgICAgICB2aXZpZCkKICAg
+ICAgICAgICAgaWYgWyAiJF9fTGludXhDb2RlTmFtZSIgIT0gImplc3NpZSIg
+XTsgdGhlbgogICAgICAgICAgICAgICAgX19MaW51eENvZGVOYW1lPXZpdmlk
+CiAgICAgICAgICAgIGZpCiAgICAgICAgICAgIDs7CiAgICAgICAgd2lseSkK
+ICAgICAgICAgICAgaWYgWyAiJF9fTGludXhDb2RlTmFtZSIgIT0gImplc3Np
+ZSIgXTsgdGhlbgogICAgICAgICAgICAgICAgX19MaW51eENvZGVOYW1lPXdp
+bHkKICAgICAgICAgICAgZmkKICAgICAgICAgICAgOzsKICAgICAgICB4ZW5p
+YWwpCiAgICAgICAgICAgIGlmIFsgIiRfX0xpbnV4Q29kZU5hbWUiICE9ICJq
+ZXNzaWUiIF07IHRoZW4KICAgICAgICAgICAgICAgIF9fTGludXhDb2RlTmFt
+ZT14ZW5pYWwKICAgICAgICAgICAgZmkKICAgICAgICAgICAgOzsKICAgICAg
+ICB6ZXN0eSkKICAgICAgICAgICAgaWYgWyAiJF9fTGludXhDb2RlTmFtZSIg
+IT0gImplc3NpZSIgXTsgdGhlbgogICAgICAgICAgICAgICAgX19MaW51eENv
+ZGVOYW1lPXplc3R5CiAgICAgICAgICAgIGZpCiAgICAgICAgICAgIDs7CiAg
+ICAgICAgYmlvbmljKQogICAgICAgICAgICBpZiBbICIkX19MaW51eENvZGVO
+YW1lIiAhPSAiamVzc2llIiBdOyB0aGVuCiAgICAgICAgICAgICAgICBfX0xp
+bnV4Q29kZU5hbWU9YmlvbmljCiAgICAgICAgICAgIGZpCiAgICAgICAgICAg
+IDs7CiAgICAgICAgamVzc2llKQogICAgICAgICAgICBfX0xpbnV4Q29kZU5h
+bWU9amVzc2llCiAgICAgICAgICAgIF9fVWJ1bnR1UmVwbz0iaHR0cDovL2Z0
+cC5kZWJpYW4ub3JnL2RlYmlhbi8iCiAgICAgICAgICAgIDs7CiAgICAgICAg
+dGl6ZW4pCiAgICAgICAgICAgIGlmIFsgIiRfX0J1aWxkQXJjaCIgIT0gImFy
+bWVsIiBdOyB0aGVuCiAgICAgICAgICAgICAgICBlY2hvICJUaXplbiBpcyBh
+dmFpbGFibGUgb25seSBmb3IgYXJtZWwuIgogICAgICAgICAgICAgICAgdXNh
+Z2U7CiAgICAgICAgICAgICAgICBleGl0IDE7CiAgICAgICAgICAgIGZpCiAg
+ICAgICAgICAgIF9fTGludXhDb2RlTmFtZT0KICAgICAgICAgICAgX19VYnVu
+dHVSZXBvPQogICAgICAgICAgICBfX1RpemVuPXRpemVuCiAgICAgICAgICAg
+IDs7CiAgICAgICAgYWxwaW5lKQogICAgICAgICAgICBfX0xpbnV4Q29kZU5h
+bWU9YWxwaW5lCiAgICAgICAgICAgIF9fVWJ1bnR1UmVwbz0KICAgICAgICAg
+ICAgOzsKICAgICAgICAtLXNraXB1bm1vdW50KQogICAgICAgICAgICBfX1Nr
+aXBVbm1vdW50PTEKICAgICAgICAgICAgOzsKICAgICAgICAqKQogICAgICAg
+ICAgICBfX1VucHJvY2Vzc2VkQnVpbGRBcmdzPSIkX19VbnByb2Nlc3NlZEJ1
+aWxkQXJncyAkaSIKICAgICAgICAgICAgOzsKICAgIGVzYWMKZG9uZQoKaWYg
+WyAiJF9fQnVpbGRBcmNoIiA9PSAiYXJtZWwiIF07IHRoZW4KICAgIF9fTExE
+Ql9QYWNrYWdlPSJsbGRiLTMuNS1kZXYiCmZpCl9fVWJ1bnR1UGFja2FnZXMr
+PSIgJHtfX0xMREJfUGFja2FnZTotfSIKCl9fUm9vdGZzRGlyPSIkX19Dcm9z
+c0Rpci9yb290ZnMvJF9fQnVpbGRBcmNoIgoKaWYgW1sgLW4gIiRST09URlNf
+RElSIiBdXTsgdGhlbgogICAgX19Sb290ZnNEaXI9JFJPT1RGU19ESVIKZmkK
+CmlmIFsgLWQgIiRfX1Jvb3Rmc0RpciIgXTsgdGhlbgogICAgaWYgWyAkX19T
+a2lwVW5tb3VudCA9PSAwIF07IHRoZW4KICAgICAgICB1bW91bnQgJF9fUm9v
+dGZzRGlyLyoKICAgIGZpCiAgICBybSAtcmYgJF9fUm9vdGZzRGlyCmZpCgpp
+ZiBbWyAiJF9fTGludXhDb2RlTmFtZSIgPT0gImFscGluZSIgXV07IHRoZW4K
+ICAgIF9fQXBrVG9vbHNWZXJzaW9uPTIuOS4xCiAgICBfX0FscGluZVZlcnNp
+b249My43CiAgICBfX0Fwa1Rvb2xzRGlyPSQobWt0ZW1wIC1kKQogICAgd2dl
+dCBodHRwczovL2dpdGh1Yi5jb20vYWxwaW5lbGludXgvYXBrLXRvb2xzL3Jl
+bGVhc2VzL2Rvd25sb2FkL3YkX19BcGtUb29sc1ZlcnNpb24vYXBrLXRvb2xz
+LSRfX0Fwa1Rvb2xzVmVyc2lvbi14ODZfNjQtbGludXgudGFyLmd6IC1QICRf
+X0Fwa1Rvb2xzRGlyCiAgICB0YXIgLXhmICRfX0Fwa1Rvb2xzRGlyL2Fway10
+b29scy0kX19BcGtUb29sc1ZlcnNpb24teDg2XzY0LWxpbnV4LnRhci5neiAt
+QyAkX19BcGtUb29sc0RpcgogICAgbWtkaXIgLXAgJF9fUm9vdGZzRGlyL3Vz
+ci9iaW4KICAgIGNwIC12IC91c3IvYmluL3FlbXUtJF9fUUVNVUFyY2gtc3Rh
+dGljICRfX1Jvb3Rmc0Rpci91c3IvYmluCiAgICAkX19BcGtUb29sc0Rpci9h
+cGstdG9vbHMtJF9fQXBrVG9vbHNWZXJzaW9uL2FwayBcCiAgICAgIC1YIGh0
+dHA6Ly9kbC1jZG4uYWxwaW5lbGludXgub3JnL2FscGluZS92JF9fQWxwaW5l
+VmVyc2lvbi9tYWluIFwKICAgICAgLVggaHR0cDovL2RsLWNkbi5hbHBpbmVs
+aW51eC5vcmcvYWxwaW5lL3YkX19BbHBpbmVWZXJzaW9uL2NvbW11bml0eSBc
+CiAgICAgIC1YIGh0dHA6Ly9kbC1jZG4uYWxwaW5lbGludXgub3JnL2FscGlu
+ZS9lZGdlL3Rlc3RpbmcgXAogICAgICAtVSAtLWFsbG93LXVudHJ1c3RlZCAt
+LXJvb3QgJF9fUm9vdGZzRGlyIC0tYXJjaCAkX19BbHBpbmVBcmNoIC0taW5p
+dGRiIFwKICAgICAgYWRkICRfX0FscGluZVBhY2thZ2VzCiAgICBybSAtciAk
+X19BcGtUb29sc0RpcgplbGlmIFtbIC1uICRfX0xpbnV4Q29kZU5hbWUgXV07
+IHRoZW4KICAgIHFlbXUtZGVib290c3RyYXAgLS1hcmNoICRfX1VidW50dUFy
+Y2ggJF9fTGludXhDb2RlTmFtZSAkX19Sb290ZnNEaXIgJF9fVWJ1bnR1UmVw
+bwogICAgY3AgJF9fQ3Jvc3NEaXIvJF9fQnVpbGRBcmNoL3NvdXJjZXMubGlz
+dC4kX19MaW51eENvZGVOYW1lICRfX1Jvb3Rmc0Rpci9ldGMvYXB0L3NvdXJj
+ZXMubGlzdAogICAgY2hyb290ICRfX1Jvb3Rmc0RpciBhcHQtZ2V0IHVwZGF0
+ZQogICAgY2hyb290ICRfX1Jvb3Rmc0RpciBhcHQtZ2V0IC1mIC15IGluc3Rh
+bGwKICAgIGNocm9vdCAkX19Sb290ZnNEaXIgYXB0LWdldCAteSBpbnN0YWxs
+ICRfX1VidW50dVBhY2thZ2VzCiAgICBjaHJvb3QgJF9fUm9vdGZzRGlyIHN5
+bWxpbmtzIC1jciAvdXNyCgogICAgaWYgWyAkX19Ta2lwVW5tb3VudCA9PSAw
+IF07IHRoZW4KICAgICAgICB1bW91bnQgJF9fUm9vdGZzRGlyLyoKICAgIGZp
+CgogICAgaWYgW1sgIiRfX0J1aWxkQXJjaCIgPT0gImFybSIgJiYgIiRfX0xp
+bnV4Q29kZU5hbWUiID09ICJ0cnVzdHkiIF1dOyB0aGVuCiAgICAgICAgcHVz
+aGQgJF9fUm9vdGZzRGlyCiAgICAgICAgcGF0Y2ggLXAxIDwgJF9fQ3Jvc3NE
+aXIvJF9fQnVpbGRBcmNoL3RydXN0eS5wYXRjaAogICAgICAgIHBhdGNoIC1w
+MSA8ICRfX0Nyb3NzRGlyLyRfX0J1aWxkQXJjaC90cnVzdHktbHR0bmctMi40
+LnBhdGNoCiAgICAgICAgcG9wZAogICAgZmkKZWxpZiBbICIkX19UaXplbiIg
+PT0gInRpemVuIiBdOyB0aGVuCiAgICBST09URlNfRElSPSRfX1Jvb3Rmc0Rp
+ciAkX19Dcm9zc0Rpci8kX19CdWlsZEFyY2gvdGl6ZW4tYnVpbGQtcm9vdGZz
+LnNoCmVsc2UKICAgIGVjaG8gIlVuc3VwcG9ydGVkIHRhcmdldCBwbGF0Zm9y
+bS4iCiAgICB1c2FnZTsKICAgIGV4aXQgMQpmaQo=

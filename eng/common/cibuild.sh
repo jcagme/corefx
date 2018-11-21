@@ -1,16 +1,12 @@
-#!/usr/bin/env bash
-
-source="${BASH_SOURCE[0]}"
-
-# resolve $SOURCE until the file is no longer a symlink
-while [[ -h $source ]]; do
-  scriptroot="$( cd -P "$( dirname "$source" )" && pwd )"
-  source="$(readlink "$source")"
-
-  # if $source was a relative symlink, we need to resolve it relative to the path where 
-  # the symlink file was located
-  [[ $source != /* ]] && source="$scriptroot/$source"
-done
-scriptroot="$( cd -P "$( dirname "$source" )" && pwd )"
-
-. "$scriptroot/build.sh" --restore --build --test --pack --publish --ci $@
+IyEvdXNyL2Jpbi9lbnYgYmFzaAoKc291cmNlPSIke0JBU0hfU09VUkNFWzBd
+fSIKCiMgcmVzb2x2ZSAkU09VUkNFIHVudGlsIHRoZSBmaWxlIGlzIG5vIGxv
+bmdlciBhIHN5bWxpbmsKd2hpbGUgW1sgLWggJHNvdXJjZSBdXTsgZG8KICBz
+Y3JpcHRyb290PSIkKCBjZCAtUCAiJCggZGlybmFtZSAiJHNvdXJjZSIgKSIg
+JiYgcHdkICkiCiAgc291cmNlPSIkKHJlYWRsaW5rICIkc291cmNlIikiCgog
+ICMgaWYgJHNvdXJjZSB3YXMgYSByZWxhdGl2ZSBzeW1saW5rLCB3ZSBuZWVk
+IHRvIHJlc29sdmUgaXQgcmVsYXRpdmUgdG8gdGhlIHBhdGggd2hlcmUgCiAg
+IyB0aGUgc3ltbGluayBmaWxlIHdhcyBsb2NhdGVkCiAgW1sgJHNvdXJjZSAh
+PSAvKiBdXSAmJiBzb3VyY2U9IiRzY3JpcHRyb290LyRzb3VyY2UiCmRvbmUK
+c2NyaXB0cm9vdD0iJCggY2QgLVAgIiQoIGRpcm5hbWUgIiRzb3VyY2UiICki
+ICYmIHB3ZCApIgoKLiAiJHNjcmlwdHJvb3QvYnVpbGQuc2giIC0tcmVzdG9y
+ZSAtLWJ1aWxkIC0tdGVzdCAtLXBhY2sgLS1wdWJsaXNoIC0tY2kgJEA=

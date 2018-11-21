@@ -1,130 +1,90 @@
-<#
-.SYNOPSIS
-Install native tool
-
-.DESCRIPTION
-Install cmake native tool from Azure blob storage
-
-.PARAMETER InstallPath
-Base directory to install native tool to
-
-.PARAMETER BaseUri
-Base file directory or Url from which to acquire tool archives
-
-.PARAMETER CommonLibraryDirectory
-Path to folder containing common library modules
-
-.PARAMETER Force
-Force install of tools even if they previously exist
-
-.PARAMETER Clean
-Don't install the tool, just clean up the current install of the tool
-
-.PARAMETER DownloadRetries
-Total number of retry attempts
-
-.PARAMETER RetryWaitTimeInSeconds
-Wait time between retry attempts in seconds
-
-.NOTES
-Returns 0 if install succeeds, 1 otherwise
-#>
-[CmdletBinding(PositionalBinding=$false)]
-Param (
-  [Parameter(Mandatory=$True)]
-  [string] $ToolName,
-  [Parameter(Mandatory=$True)]
-  [string] $InstallPath,
-  [Parameter(Mandatory=$True)]
-  [string] $BaseUri,
-  [Parameter(Mandatory=$True)]
-  [string] $Version,
-  [string] $CommonLibraryDirectory = $PSScriptRoot,
-  [switch] $Force = $False,
-  [switch] $Clean = $False,
-  [int] $DownloadRetries = 5,
-  [int] $RetryWaitTimeInSeconds = 30
-)
-
-# Import common library modules
-Import-Module -Name (Join-Path $CommonLibraryDirectory "CommonLibrary.psm1")
-
-try {
-  # Define verbose switch if undefined
-  $Verbose = $VerbosePreference -Eq "Continue"
-
-  $Arch = CommonLibrary\Get-MachineArchitecture
-  $ToolOs = "win64"
-  if($Arch -Eq "x32") {
-    $ToolOs = "win32"
-  }
-  $ToolNameMoniker = "$ToolName-$Version-$ToolOs-$Arch"
-  $ToolInstallDirectory = Join-Path $InstallPath "$ToolName\$Version\"
-  $Uri = "$BaseUri/windows/$ToolName/$ToolNameMoniker.zip"
-  $ShimPath = Join-Path $InstallPath "$ToolName.exe"
-
-  if ($Clean) {
-    Write-Host "Cleaning $ToolInstallDirectory"
-    if (Test-Path $ToolInstallDirectory) {
-      Remove-Item $ToolInstallDirectory -Force -Recurse
-    }
-    Write-Host "Cleaning $ShimPath"
-    if (Test-Path $ShimPath) {
-      Remove-Item $ShimPath -Force
-    }
-    $ToolTempPath = CommonLibrary\Get-TempPathFilename -Path $Uri
-    Write-Host "Cleaning $ToolTempPath"
-    if (Test-Path $ToolTempPath) {
-      Remove-Item $ToolTempPath -Force
-    }
-    exit 0
-  }
-
-  # Install tool
-  if ((Test-Path $ToolInstallDirectory) -And (-Not $Force)) {
-    Write-Verbose "$ToolName ($Version) already exists, skipping install"
-  }
-  else {
-    $InstallStatus = CommonLibrary\DownloadAndExtract -Uri $Uri `
-                                                      -InstallDirectory $ToolInstallDirectory `
-                                                      -Force:$Force `
-                                                      -DownloadRetries $DownloadRetries `
-                                                      -RetryWaitTimeInSeconds $RetryWaitTimeInSeconds `
-                                                      -Verbose:$Verbose
-
-    if ($InstallStatus -Eq $False) {
-      Write-Error "Installation failed"
-      exit 1
-    }
-  }
-
-  $ToolFilePath = Get-ChildItem $ToolInstallDirectory -Recurse -Filter "$ToolName.exe" | % { $_.FullName }
-  if (@($ToolFilePath).Length -Gt 1) {
-    Write-Error "There are multiple copies of $ToolName in $($ToolInstallDirectory): `n$(@($ToolFilePath | out-string))"
-    exit 1
-  } elseif (@($ToolFilePath).Length -Lt 1) {
-    Write-Error "$ToolName was not found in $ToolFilePath."
-    exit 1
-  }
-
-  # Generate shim
-  # Always rewrite shims so that we are referencing the expected version
-  $GenerateShimStatus = CommonLibrary\New-ScriptShim -ShimName $ToolName `
-                                                     -ShimDirectory $InstallPath `
-                                                     -ToolFilePath "$ToolFilePath" `
-                                                     -BaseUri $BaseUri `
-                                                     -Force:$Force `
-                                                     -Verbose:$Verbose
-
-  if ($GenerateShimStatus -Eq $False) {
-    Write-Error "Generate shim failed"
-    return 1
-  }
-
-  exit 0
-}
-catch {
-  Write-Host $_
-  Write-Host $_.Exception
-  exit 1
-}
+PCMKLlNZTk9QU0lTCkluc3RhbGwgbmF0aXZlIHRvb2wKCi5ERVNDUklQVElP
+TgpJbnN0YWxsIGNtYWtlIG5hdGl2ZSB0b29sIGZyb20gQXp1cmUgYmxvYiBz
+dG9yYWdlCgouUEFSQU1FVEVSIEluc3RhbGxQYXRoCkJhc2UgZGlyZWN0b3J5
+IHRvIGluc3RhbGwgbmF0aXZlIHRvb2wgdG8KCi5QQVJBTUVURVIgQmFzZVVy
+aQpCYXNlIGZpbGUgZGlyZWN0b3J5IG9yIFVybCBmcm9tIHdoaWNoIHRvIGFj
+cXVpcmUgdG9vbCBhcmNoaXZlcwoKLlBBUkFNRVRFUiBDb21tb25MaWJyYXJ5
+RGlyZWN0b3J5ClBhdGggdG8gZm9sZGVyIGNvbnRhaW5pbmcgY29tbW9uIGxp
+YnJhcnkgbW9kdWxlcwoKLlBBUkFNRVRFUiBGb3JjZQpGb3JjZSBpbnN0YWxs
+IG9mIHRvb2xzIGV2ZW4gaWYgdGhleSBwcmV2aW91c2x5IGV4aXN0CgouUEFS
+QU1FVEVSIENsZWFuCkRvbid0IGluc3RhbGwgdGhlIHRvb2wsIGp1c3QgY2xl
+YW4gdXAgdGhlIGN1cnJlbnQgaW5zdGFsbCBvZiB0aGUgdG9vbAoKLlBBUkFN
+RVRFUiBEb3dubG9hZFJldHJpZXMKVG90YWwgbnVtYmVyIG9mIHJldHJ5IGF0
+dGVtcHRzCgouUEFSQU1FVEVSIFJldHJ5V2FpdFRpbWVJblNlY29uZHMKV2Fp
+dCB0aW1lIGJldHdlZW4gcmV0cnkgYXR0ZW1wdHMgaW4gc2Vjb25kcwoKLk5P
+VEVTClJldHVybnMgMCBpZiBpbnN0YWxsIHN1Y2NlZWRzLCAxIG90aGVyd2lz
+ZQojPgpbQ21kbGV0QmluZGluZyhQb3NpdGlvbmFsQmluZGluZz0kZmFsc2Up
+XQpQYXJhbSAoCiAgW1BhcmFtZXRlcihNYW5kYXRvcnk9JFRydWUpXQogIFtz
+dHJpbmddICRUb29sTmFtZSwKICBbUGFyYW1ldGVyKE1hbmRhdG9yeT0kVHJ1
+ZSldCiAgW3N0cmluZ10gJEluc3RhbGxQYXRoLAogIFtQYXJhbWV0ZXIoTWFu
+ZGF0b3J5PSRUcnVlKV0KICBbc3RyaW5nXSAkQmFzZVVyaSwKICBbUGFyYW1l
+dGVyKE1hbmRhdG9yeT0kVHJ1ZSldCiAgW3N0cmluZ10gJFZlcnNpb24sCiAg
+W3N0cmluZ10gJENvbW1vbkxpYnJhcnlEaXJlY3RvcnkgPSAkUFNTY3JpcHRS
+b290LAogIFtzd2l0Y2hdICRGb3JjZSA9ICRGYWxzZSwKICBbc3dpdGNoXSAk
+Q2xlYW4gPSAkRmFsc2UsCiAgW2ludF0gJERvd25sb2FkUmV0cmllcyA9IDUs
+CiAgW2ludF0gJFJldHJ5V2FpdFRpbWVJblNlY29uZHMgPSAzMAopCgojIElt
+cG9ydCBjb21tb24gbGlicmFyeSBtb2R1bGVzCkltcG9ydC1Nb2R1bGUgLU5h
+bWUgKEpvaW4tUGF0aCAkQ29tbW9uTGlicmFyeURpcmVjdG9yeSAiQ29tbW9u
+TGlicmFyeS5wc20xIikKCnRyeSB7CiAgIyBEZWZpbmUgdmVyYm9zZSBzd2l0
+Y2ggaWYgdW5kZWZpbmVkCiAgJFZlcmJvc2UgPSAkVmVyYm9zZVByZWZlcmVu
+Y2UgLUVxICJDb250aW51ZSIKCiAgJEFyY2ggPSBDb21tb25MaWJyYXJ5XEdl
+dC1NYWNoaW5lQXJjaGl0ZWN0dXJlCiAgJFRvb2xPcyA9ICJ3aW42NCIKICBp
+ZigkQXJjaCAtRXEgIngzMiIpIHsKICAgICRUb29sT3MgPSAid2luMzIiCiAg
+fQogICRUb29sTmFtZU1vbmlrZXIgPSAiJFRvb2xOYW1lLSRWZXJzaW9uLSRU
+b29sT3MtJEFyY2giCiAgJFRvb2xJbnN0YWxsRGlyZWN0b3J5ID0gSm9pbi1Q
+YXRoICRJbnN0YWxsUGF0aCAiJFRvb2xOYW1lXCRWZXJzaW9uXCIKICAkVXJp
+ID0gIiRCYXNlVXJpL3dpbmRvd3MvJFRvb2xOYW1lLyRUb29sTmFtZU1vbmlr
+ZXIuemlwIgogICRTaGltUGF0aCA9IEpvaW4tUGF0aCAkSW5zdGFsbFBhdGgg
+IiRUb29sTmFtZS5leGUiCgogIGlmICgkQ2xlYW4pIHsKICAgIFdyaXRlLUhv
+c3QgIkNsZWFuaW5nICRUb29sSW5zdGFsbERpcmVjdG9yeSIKICAgIGlmIChU
+ZXN0LVBhdGggJFRvb2xJbnN0YWxsRGlyZWN0b3J5KSB7CiAgICAgIFJlbW92
+ZS1JdGVtICRUb29sSW5zdGFsbERpcmVjdG9yeSAtRm9yY2UgLVJlY3Vyc2UK
+ICAgIH0KICAgIFdyaXRlLUhvc3QgIkNsZWFuaW5nICRTaGltUGF0aCIKICAg
+IGlmIChUZXN0LVBhdGggJFNoaW1QYXRoKSB7CiAgICAgIFJlbW92ZS1JdGVt
+ICRTaGltUGF0aCAtRm9yY2UKICAgIH0KICAgICRUb29sVGVtcFBhdGggPSBD
+b21tb25MaWJyYXJ5XEdldC1UZW1wUGF0aEZpbGVuYW1lIC1QYXRoICRVcmkK
+ICAgIFdyaXRlLUhvc3QgIkNsZWFuaW5nICRUb29sVGVtcFBhdGgiCiAgICBp
+ZiAoVGVzdC1QYXRoICRUb29sVGVtcFBhdGgpIHsKICAgICAgUmVtb3ZlLUl0
+ZW0gJFRvb2xUZW1wUGF0aCAtRm9yY2UKICAgIH0KICAgIGV4aXQgMAogIH0K
+CiAgIyBJbnN0YWxsIHRvb2wKICBpZiAoKFRlc3QtUGF0aCAkVG9vbEluc3Rh
+bGxEaXJlY3RvcnkpIC1BbmQgKC1Ob3QgJEZvcmNlKSkgewogICAgV3JpdGUt
+VmVyYm9zZSAiJFRvb2xOYW1lICgkVmVyc2lvbikgYWxyZWFkeSBleGlzdHMs
+IHNraXBwaW5nIGluc3RhbGwiCiAgfQogIGVsc2UgewogICAgJEluc3RhbGxT
+dGF0dXMgPSBDb21tb25MaWJyYXJ5XERvd25sb2FkQW5kRXh0cmFjdCAtVXJp
+ICRVcmkgYAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAtSW5zdGFsbERpcmVjdG9yeSAkVG9vbEluc3Rh
+bGxEaXJlY3RvcnkgYAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAtRm9yY2U6JEZvcmNlIGAKICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgLURvd25sb2FkUmV0cmllcyAkRG93bmxvYWRSZXRyaWVzIGAKICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgLVJldHJ5V2FpdFRpbWVJblNlY29uZHMgJFJldHJ5V2FpdFRpbWVJblNl
+Y29uZHMgYAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAtVmVyYm9zZTokVmVyYm9zZQoKICAgIGlmICgk
+SW5zdGFsbFN0YXR1cyAtRXEgJEZhbHNlKSB7CiAgICAgIFdyaXRlLUVycm9y
+ICJJbnN0YWxsYXRpb24gZmFpbGVkIgogICAgICBleGl0IDEKICAgIH0KICB9
+CgogICRUb29sRmlsZVBhdGggPSBHZXQtQ2hpbGRJdGVtICRUb29sSW5zdGFs
+bERpcmVjdG9yeSAtUmVjdXJzZSAtRmlsdGVyICIkVG9vbE5hbWUuZXhlIiB8
+ICUgeyAkXy5GdWxsTmFtZSB9CiAgaWYgKEAoJFRvb2xGaWxlUGF0aCkuTGVu
+Z3RoIC1HdCAxKSB7CiAgICBXcml0ZS1FcnJvciAiVGhlcmUgYXJlIG11bHRp
+cGxlIGNvcGllcyBvZiAkVG9vbE5hbWUgaW4gJCgkVG9vbEluc3RhbGxEaXJl
+Y3RvcnkpOiBgbiQoQCgkVG9vbEZpbGVQYXRoIHwgb3V0LXN0cmluZykpIgog
+ICAgZXhpdCAxCiAgfSBlbHNlaWYgKEAoJFRvb2xGaWxlUGF0aCkuTGVuZ3Ro
+IC1MdCAxKSB7CiAgICBXcml0ZS1FcnJvciAiJFRvb2xOYW1lIHdhcyBub3Qg
+Zm91bmQgaW4gJFRvb2xGaWxlUGF0aC4iCiAgICBleGl0IDEKICB9CgogICMg
+R2VuZXJhdGUgc2hpbQogICMgQWx3YXlzIHJld3JpdGUgc2hpbXMgc28gdGhh
+dCB3ZSBhcmUgcmVmZXJlbmNpbmcgdGhlIGV4cGVjdGVkIHZlcnNpb24KICAk
+R2VuZXJhdGVTaGltU3RhdHVzID0gQ29tbW9uTGlicmFyeVxOZXctU2NyaXB0
+U2hpbSAtU2hpbU5hbWUgJFRvb2xOYW1lIGAKICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAtU2hpbURpcmVj
+dG9yeSAkSW5zdGFsbFBhdGggYAogICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgIC1Ub29sRmlsZVBhdGggIiRU
+b29sRmlsZVBhdGgiIGAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAtQmFzZVVyaSAkQmFzZVVyaSBgCiAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgLUZvcmNlOiRGb3JjZSBgCiAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgLVZlcmJvc2U6JFZlcmJv
+c2UKCiAgaWYgKCRHZW5lcmF0ZVNoaW1TdGF0dXMgLUVxICRGYWxzZSkgewog
+ICAgV3JpdGUtRXJyb3IgIkdlbmVyYXRlIHNoaW0gZmFpbGVkIgogICAgcmV0
+dXJuIDEKICB9CgogIGV4aXQgMAp9CmNhdGNoIHsKICBXcml0ZS1Ib3N0ICRf
+CiAgV3JpdGUtSG9zdCAkXy5FeGNlcHRpb24KICBleGl0IDEKfQo=

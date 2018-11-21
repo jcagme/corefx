@@ -1,171 +1,86 @@
-#!/usr/bin/env bash
-
-source="${BASH_SOURCE[0]}"
-
-# resolve $source until the file is no longer a symlink
-while [[ -h "$source" ]]; do
-  scriptroot="$( cd -P "$( dirname "$source" )" && pwd )"
-  source="$(readlink "$source")"
-  # if $source was a relative symlink, we need to resolve it relative to the path where the
-  # symlink file was located
-  [[ $source != /* ]] && source="$scriptroot/$source"
-done
-scriptroot="$( cd -P "$( dirname "$source" )" && pwd )"
-
-help=false
-restore=false
-build=false
-rebuild=false
-test=false
-pack=false
-publish=false
-integration_test=false
-performance_test=false
-sign=false
-public=false
-ci=false
-
-warnaserror=true
-nodereuse=true
-
-projects=''
-configuration='Debug'
-prepare_machine=false
-verbosity='minimal'
-properties=''
-
-while (($# > 0)); do
-  lowerI="$(echo $1 | awk '{print tolower($0)}')"
-  case $lowerI in
-    --build)
-      build=true
-      shift 1
-      ;;
-    --ci)
-      ci=true
-      shift 1
-      ;;
-    --configuration)
-      configuration=$2
-      shift 2
-      ;;
-    --help)
-      echo "Common settings:"
-      echo "  --configuration <value>  Build configuration Debug, Release"
-      echo "  --verbosity <value>      Msbuild verbosity (q[uiet], m[inimal], n[ormal], d[etailed], and diag[nostic])"
-      echo "  --help                   Print help and exit"
-      echo ""
-      echo "Actions:"
-      echo "  --restore                Restore dependencies"
-      echo "  --build                  Build solution"
-      echo "  --rebuild                Rebuild solution"
-      echo "  --test                   Run all unit tests in the solution"
-      echo "  --sign                   Sign build outputs"
-      echo "  --publish                Publish artifacts (e.g. symbols)"
-      echo "  --pack                   Package build outputs into NuGet packages and Willow components"
-      echo ""
-      echo "Advanced settings:"
-      echo "  --solution <value>       Path to solution to build"
-      echo "  --ci                     Set when running on CI server"
-      echo "  --prepareMachine         Prepare machine for CI run"
-      echo ""
-      echo "Command line arguments not listed above are passed through to MSBuild."
-      exit 0
-      ;;
-    --pack)
-      pack=true
-      shift 1
-      ;;
-    --preparemachine)
-      prepare_machine=true
-      shift 1
-      ;;
-    --rebuild)
-      rebuild=true
-      shift 1
-      ;;
-    --restore)
-      restore=true
-      shift 1
-      ;;
-    --sign)
-      sign=true
-      shift 1
-      ;;
-    --solution)
-      solution=$2
-      shift 2
-      ;;
-    --projects)
-      projects=$2
-      shift 2
-      ;;
-    --test)
-      test=true
-      shift 1
-      ;;
-    --integrationtest)
-      integration_test=true
-      shift 1
-      ;;
-    --performancetest)
-      performance_test=true
-      shift 1
-      ;;
-    --publish)
-      publish=true
-      shift 1
-      ;;
-    --verbosity)
-      verbosity=$2
-      shift 2
-      ;;
-    --warnaserror)
-      warnaserror=$2
-      shift 2
-      ;;
-    --nodereuse)
-      nodereuse=$2
-      shift 2
-      ;;
-      *)
-      properties="$properties $1"
-      shift 1
-      ;;
-  esac
-done
-
-. "$scriptroot/tools.sh"
-
-if [[ -z $projects ]]; then
-  projects="$repo_root/*.sln"
-fi
-
-InitializeTools
-
-build_log="$log_dir/Build.binlog"
-
-MSBuild "$toolset_build_proj" \
-  /bl:"$build_log" \
-  /p:Configuration=$configuration \
-  /p:Projects="$projects" \
-  /p:RepoRoot="$repo_root" \
-  /p:Restore=$restore \
-  /p:Build=$build \
-  /p:Rebuild=$rebuild \
-  /p:Test=$test \
-  /p:Pack=$pack \
-  /p:IntegrationTest=$integration_test \
-  /p:PerformanceTest=$performance_test \
-  /p:Sign=$sign \
-  /p:Publish=$publish \
-  /p:ContinuousIntegrationBuild=$ci \
-  $properties
-
-lastexitcode=$?
-
-if [[ $lastexitcode != 0 ]]; then
-  echo "Build failed (exit code '$lastexitcode'). See log: $build_log"
-fi
-
-ExitWithExitCode $lastexitcode
+IyEvdXNyL2Jpbi9lbnYgYmFzaAoKc291cmNlPSIke0JBU0hfU09VUkNFWzBd
+fSIKCiMgcmVzb2x2ZSAkc291cmNlIHVudGlsIHRoZSBmaWxlIGlzIG5vIGxv
+bmdlciBhIHN5bWxpbmsKd2hpbGUgW1sgLWggIiRzb3VyY2UiIF1dOyBkbwog
+IHNjcmlwdHJvb3Q9IiQoIGNkIC1QICIkKCBkaXJuYW1lICIkc291cmNlIiAp
+IiAmJiBwd2QgKSIKICBzb3VyY2U9IiQocmVhZGxpbmsgIiRzb3VyY2UiKSIK
+ICAjIGlmICRzb3VyY2Ugd2FzIGEgcmVsYXRpdmUgc3ltbGluaywgd2UgbmVl
+ZCB0byByZXNvbHZlIGl0IHJlbGF0aXZlIHRvIHRoZSBwYXRoIHdoZXJlIHRo
+ZQogICMgc3ltbGluayBmaWxlIHdhcyBsb2NhdGVkCiAgW1sgJHNvdXJjZSAh
+PSAvKiBdXSAmJiBzb3VyY2U9IiRzY3JpcHRyb290LyRzb3VyY2UiCmRvbmUK
+c2NyaXB0cm9vdD0iJCggY2QgLVAgIiQoIGRpcm5hbWUgIiRzb3VyY2UiICki
+ICYmIHB3ZCApIgoKaGVscD1mYWxzZQpyZXN0b3JlPWZhbHNlCmJ1aWxkPWZh
+bHNlCnJlYnVpbGQ9ZmFsc2UKdGVzdD1mYWxzZQpwYWNrPWZhbHNlCnB1Ymxp
+c2g9ZmFsc2UKaW50ZWdyYXRpb25fdGVzdD1mYWxzZQpwZXJmb3JtYW5jZV90
+ZXN0PWZhbHNlCnNpZ249ZmFsc2UKcHVibGljPWZhbHNlCmNpPWZhbHNlCgp3
+YXJuYXNlcnJvcj10cnVlCm5vZGVyZXVzZT10cnVlCgpwcm9qZWN0cz0nJwpj
+b25maWd1cmF0aW9uPSdEZWJ1ZycKcHJlcGFyZV9tYWNoaW5lPWZhbHNlCnZl
+cmJvc2l0eT0nbWluaW1hbCcKcHJvcGVydGllcz0nJwoKd2hpbGUgKCgkIyA+
+IDApKTsgZG8KICBsb3dlckk9IiQoZWNobyAkMSB8IGF3ayAne3ByaW50IHRv
+bG93ZXIoJDApfScpIgogIGNhc2UgJGxvd2VySSBpbgogICAgLS1idWlsZCkK
+ICAgICAgYnVpbGQ9dHJ1ZQogICAgICBzaGlmdCAxCiAgICAgIDs7CiAgICAt
+LWNpKQogICAgICBjaT10cnVlCiAgICAgIHNoaWZ0IDEKICAgICAgOzsKICAg
+IC0tY29uZmlndXJhdGlvbikKICAgICAgY29uZmlndXJhdGlvbj0kMgogICAg
+ICBzaGlmdCAyCiAgICAgIDs7CiAgICAtLWhlbHApCiAgICAgIGVjaG8gIkNv
+bW1vbiBzZXR0aW5nczoiCiAgICAgIGVjaG8gIiAgLS1jb25maWd1cmF0aW9u
+IDx2YWx1ZT4gIEJ1aWxkIGNvbmZpZ3VyYXRpb24gRGVidWcsIFJlbGVhc2Ui
+CiAgICAgIGVjaG8gIiAgLS12ZXJib3NpdHkgPHZhbHVlPiAgICAgIE1zYnVp
+bGQgdmVyYm9zaXR5IChxW3VpZXRdLCBtW2luaW1hbF0sIG5bb3JtYWxdLCBk
+W2V0YWlsZWRdLCBhbmQgZGlhZ1tub3N0aWNdKSIKICAgICAgZWNobyAiICAt
+LWhlbHAgICAgICAgICAgICAgICAgICAgUHJpbnQgaGVscCBhbmQgZXhpdCIK
+ICAgICAgZWNobyAiIgogICAgICBlY2hvICJBY3Rpb25zOiIKICAgICAgZWNo
+byAiICAtLXJlc3RvcmUgICAgICAgICAgICAgICAgUmVzdG9yZSBkZXBlbmRl
+bmNpZXMiCiAgICAgIGVjaG8gIiAgLS1idWlsZCAgICAgICAgICAgICAgICAg
+IEJ1aWxkIHNvbHV0aW9uIgogICAgICBlY2hvICIgIC0tcmVidWlsZCAgICAg
+ICAgICAgICAgICBSZWJ1aWxkIHNvbHV0aW9uIgogICAgICBlY2hvICIgIC0t
+dGVzdCAgICAgICAgICAgICAgICAgICBSdW4gYWxsIHVuaXQgdGVzdHMgaW4g
+dGhlIHNvbHV0aW9uIgogICAgICBlY2hvICIgIC0tc2lnbiAgICAgICAgICAg
+ICAgICAgICBTaWduIGJ1aWxkIG91dHB1dHMiCiAgICAgIGVjaG8gIiAgLS1w
+dWJsaXNoICAgICAgICAgICAgICAgIFB1Ymxpc2ggYXJ0aWZhY3RzIChlLmcu
+IHN5bWJvbHMpIgogICAgICBlY2hvICIgIC0tcGFjayAgICAgICAgICAgICAg
+ICAgICBQYWNrYWdlIGJ1aWxkIG91dHB1dHMgaW50byBOdUdldCBwYWNrYWdl
+cyBhbmQgV2lsbG93IGNvbXBvbmVudHMiCiAgICAgIGVjaG8gIiIKICAgICAg
+ZWNobyAiQWR2YW5jZWQgc2V0dGluZ3M6IgogICAgICBlY2hvICIgIC0tc29s
+dXRpb24gPHZhbHVlPiAgICAgICBQYXRoIHRvIHNvbHV0aW9uIHRvIGJ1aWxk
+IgogICAgICBlY2hvICIgIC0tY2kgICAgICAgICAgICAgICAgICAgICBTZXQg
+d2hlbiBydW5uaW5nIG9uIENJIHNlcnZlciIKICAgICAgZWNobyAiICAtLXBy
+ZXBhcmVNYWNoaW5lICAgICAgICAgUHJlcGFyZSBtYWNoaW5lIGZvciBDSSBy
+dW4iCiAgICAgIGVjaG8gIiIKICAgICAgZWNobyAiQ29tbWFuZCBsaW5lIGFy
+Z3VtZW50cyBub3QgbGlzdGVkIGFib3ZlIGFyZSBwYXNzZWQgdGhyb3VnaCB0
+byBNU0J1aWxkLiIKICAgICAgZXhpdCAwCiAgICAgIDs7CiAgICAtLXBhY2sp
+CiAgICAgIHBhY2s9dHJ1ZQogICAgICBzaGlmdCAxCiAgICAgIDs7CiAgICAt
+LXByZXBhcmVtYWNoaW5lKQogICAgICBwcmVwYXJlX21hY2hpbmU9dHJ1ZQog
+ICAgICBzaGlmdCAxCiAgICAgIDs7CiAgICAtLXJlYnVpbGQpCiAgICAgIHJl
+YnVpbGQ9dHJ1ZQogICAgICBzaGlmdCAxCiAgICAgIDs7CiAgICAtLXJlc3Rv
+cmUpCiAgICAgIHJlc3RvcmU9dHJ1ZQogICAgICBzaGlmdCAxCiAgICAgIDs7
+CiAgICAtLXNpZ24pCiAgICAgIHNpZ249dHJ1ZQogICAgICBzaGlmdCAxCiAg
+ICAgIDs7CiAgICAtLXNvbHV0aW9uKQogICAgICBzb2x1dGlvbj0kMgogICAg
+ICBzaGlmdCAyCiAgICAgIDs7CiAgICAtLXByb2plY3RzKQogICAgICBwcm9q
+ZWN0cz0kMgogICAgICBzaGlmdCAyCiAgICAgIDs7CiAgICAtLXRlc3QpCiAg
+ICAgIHRlc3Q9dHJ1ZQogICAgICBzaGlmdCAxCiAgICAgIDs7CiAgICAtLWlu
+dGVncmF0aW9udGVzdCkKICAgICAgaW50ZWdyYXRpb25fdGVzdD10cnVlCiAg
+ICAgIHNoaWZ0IDEKICAgICAgOzsKICAgIC0tcGVyZm9ybWFuY2V0ZXN0KQog
+ICAgICBwZXJmb3JtYW5jZV90ZXN0PXRydWUKICAgICAgc2hpZnQgMQogICAg
+ICA7OwogICAgLS1wdWJsaXNoKQogICAgICBwdWJsaXNoPXRydWUKICAgICAg
+c2hpZnQgMQogICAgICA7OwogICAgLS12ZXJib3NpdHkpCiAgICAgIHZlcmJv
+c2l0eT0kMgogICAgICBzaGlmdCAyCiAgICAgIDs7CiAgICAtLXdhcm5hc2Vy
+cm9yKQogICAgICB3YXJuYXNlcnJvcj0kMgogICAgICBzaGlmdCAyCiAgICAg
+IDs7CiAgICAtLW5vZGVyZXVzZSkKICAgICAgbm9kZXJldXNlPSQyCiAgICAg
+IHNoaWZ0IDIKICAgICAgOzsKICAgICAgKikKICAgICAgcHJvcGVydGllcz0i
+JHByb3BlcnRpZXMgJDEiCiAgICAgIHNoaWZ0IDEKICAgICAgOzsKICBlc2Fj
+CmRvbmUKCi4gIiRzY3JpcHRyb290L3Rvb2xzLnNoIgoKaWYgW1sgLXogJHBy
+b2plY3RzIF1dOyB0aGVuCiAgcHJvamVjdHM9IiRyZXBvX3Jvb3QvKi5zbG4i
+CmZpCgpJbml0aWFsaXplVG9vbHMKCmJ1aWxkX2xvZz0iJGxvZ19kaXIvQnVp
+bGQuYmlubG9nIgoKTVNCdWlsZCAiJHRvb2xzZXRfYnVpbGRfcHJvaiIgXAog
+IC9ibDoiJGJ1aWxkX2xvZyIgXAogIC9wOkNvbmZpZ3VyYXRpb249JGNvbmZp
+Z3VyYXRpb24gXAogIC9wOlByb2plY3RzPSIkcHJvamVjdHMiIFwKICAvcDpS
+ZXBvUm9vdD0iJHJlcG9fcm9vdCIgXAogIC9wOlJlc3RvcmU9JHJlc3RvcmUg
+XAogIC9wOkJ1aWxkPSRidWlsZCBcCiAgL3A6UmVidWlsZD0kcmVidWlsZCBc
+CiAgL3A6VGVzdD0kdGVzdCBcCiAgL3A6UGFjaz0kcGFjayBcCiAgL3A6SW50
+ZWdyYXRpb25UZXN0PSRpbnRlZ3JhdGlvbl90ZXN0IFwKICAvcDpQZXJmb3Jt
+YW5jZVRlc3Q9JHBlcmZvcm1hbmNlX3Rlc3QgXAogIC9wOlNpZ249JHNpZ24g
+XAogIC9wOlB1Ymxpc2g9JHB1Ymxpc2ggXAogIC9wOkNvbnRpbnVvdXNJbnRl
+Z3JhdGlvbkJ1aWxkPSRjaSBcCiAgJHByb3BlcnRpZXMKCmxhc3RleGl0Y29k
+ZT0kPwoKaWYgW1sgJGxhc3RleGl0Y29kZSAhPSAwIF1dOyB0aGVuCiAgZWNo
+byAiQnVpbGQgZmFpbGVkIChleGl0IGNvZGUgJyRsYXN0ZXhpdGNvZGUnKS4g
+U2VlIGxvZzogJGJ1aWxkX2xvZyIKZmkKCkV4aXRXaXRoRXhpdENvZGUgJGxh
+c3RleGl0Y29kZQo=

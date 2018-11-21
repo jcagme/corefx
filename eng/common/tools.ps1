@@ -1,283 +1,216 @@
-# Initialize variables if they aren't already defined
-
-$ci = if (Test-Path variable:ci) { $ci } else { $false }
-$configuration = if (Test-Path variable:configuration) { $configuration } else { "Debug" }
-$nodereuse = if (Test-Path variable:nodereuse) { $nodereuse } else { !$ci }
-$prepareMachine = if (Test-Path variable:prepareMachine) { $prepareMachine } else { $false }
-$restore = if (Test-Path variable:restore) { $restore } else { $true }
-$verbosity = if (Test-Path variable:verbosity) { $verbosity } else { "minimal" }
-$warnaserror = if (Test-Path variable:warnaserror) { $warnaserror } else { $true }
-$msbuildEngine = if (Test-Path variable:msbuildEngine) { $msbuildEngine } else { $null }
-$useInstalledDotNetCli = if (Test-Path variable:useInstalledDotNetCli) { $useInstalledDotNetCli } else { $true }
-
-set-strictmode -version 2.0
-$ErrorActionPreference = "Stop"
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-
-function Create-Directory([string[]] $path) {
-  if (!(Test-Path $path)) {
-    New-Item -path $path -force -itemType "Directory" | Out-Null
-  }
-}
-
-function InitializeDotNetCli([bool]$install) {
-  # Don't resolve runtime, shared framework, or SDK from other locations to ensure build determinism
-  $env:DOTNET_MULTILEVEL_LOOKUP=0
-
-  # Disable first run since we do not need all ASP.NET packages restored.
-  $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
-
-  # Source Build uses DotNetCoreSdkDir variable
-  if ($env:DotNetCoreSdkDir -ne $null) {
-    $env:DOTNET_INSTALL_DIR = $env:DotNetCoreSdkDir
-  }
-
-  # Find the first path on %PATH% that contains the dotnet.exe
-  if ($useInstalledDotNetCli -and ($env:DOTNET_INSTALL_DIR -eq $null)) {
-    $env:DOTNET_INSTALL_DIR = ${env:PATH}.Split(';') | where { ($_ -ne "") -and (Test-Path (Join-Path $_ "dotnet.exe")) }
-  }
-
-  $dotnetSdkVersion = $GlobalJson.tools.dotnet
-
-  # Use dotnet installation specified in DOTNET_INSTALL_DIR if it contains the required SDK version,
-  # otherwise install the dotnet CLI and SDK to repo local .dotnet directory to avoid potential permission issues.
-  if (($env:DOTNET_INSTALL_DIR -ne $null) -and (Test-Path(Join-Path $env:DOTNET_INSTALL_DIR "sdk\$dotnetSdkVersion"))) {
-    $dotnetRoot = $env:DOTNET_INSTALL_DIR
-  } else {
-    $dotnetRoot = Join-Path $RepoRoot ".dotnet"
-    $env:DOTNET_INSTALL_DIR = $dotnetRoot
-
-    if (-not (Test-Path(Join-Path $env:DOTNET_INSTALL_DIR "sdk\$dotnetSdkVersion"))) {
-      if ($install) {
-        InstallDotNetSdk $dotnetRoot $dotnetSdkVersion
-      } else {
-        Write-Host "Unable to find dotnet with SDK version '$dotnetSdkVersion'" -ForegroundColor Red
-        ExitWithExitCode 1
-      }
-    }
-  }
-
-  return $dotnetRoot
-}
-
-function GetDotNetInstallScript([string] $dotnetRoot) {
-  $installScript = "$dotnetRoot\dotnet-install.ps1"
-  if (!(Test-Path $installScript)) {
-    Create-Directory $dotnetRoot
-    Invoke-WebRequest "https://dot.net/v1/dotnet-install.ps1" -OutFile $installScript
-  }
-
-  return $installScript
-}
-
-function InstallDotNetSdk([string] $dotnetRoot, [string] $version) {
-  $installScript = GetDotNetInstallScript $dotnetRoot
-  & $installScript -Version $version -InstallDir $dotnetRoot
-  if ($lastExitCode -ne 0) {
-    Write-Host "Failed to install dotnet cli (exit code '$lastExitCode')." -ForegroundColor Red
-    ExitWithExitCode $lastExitCode
-  }
-}
-
-function InitializeVisualStudioBuild {
-  $vsToolsPath = $env:VS150COMNTOOLS
-  if ($vsToolsPath -eq $null) { 
-    $vsToolsPath = $env:VS160COMNTOOLS
-  }
-
-  if (($vsToolsPath -ne $null) -and (Test-Path $vsToolsPath)) {
-    $vsInstallDir = [System.IO.Path]::GetFullPath((Join-Path $vsToolsPath "..\.."))
-  } else {
-    $vsInfo = LocateVisualStudio
-
-    $vsInstallDir = $vsInfo.installationPath
-    $vsSdkInstallDir = Join-Path $vsInstallDir "VSSDK\"
-    $vsVersion = $vsInfo.installationVersion.Split('.')[0] + "0"
-
-    Set-Item "env:VS$($vsVersion)COMNTOOLS" (Join-Path $vsInstallDir "Common7\Tools\")    
-    Set-Item "env:VSSDK$($vsVersion)Install" $vsSdkInstallDir
-    $env:VSSDKInstall = $vsSdkInstallDir
-  }
-
-  return $vsInstallDir
-}
-
-function LocateVisualStudio {
-  $vswhereVersion = $GlobalJson.tools.vswhere
-
-  if (!$vsWhereVersion) {
-    Write-Host "vswhere version must be specified in /global.json." -ForegroundColor Red
-    ExitWithExitCode 1
-  }
-
-  $toolsRoot = Join-Path $RepoRoot ".tools"
-  $vsWhereDir = Join-Path $toolsRoot "vswhere\$vswhereVersion"
-  $vsWhereExe = Join-Path $vsWhereDir "vswhere.exe"
-
-  if (!(Test-Path $vsWhereExe)) {
-    Create-Directory $vsWhereDir
-    Write-Host "Downloading vswhere"
-    Invoke-WebRequest "https://github.com/Microsoft/vswhere/releases/download/$vswhereVersion/vswhere.exe" -OutFile $vswhereExe
-  }
-
-  $vsInfo = & $vsWhereExe `
-    -latest `
-    -prerelease `
-    -format json `
-    -requires Microsoft.Component.MSBuild `
-    -requires Microsoft.VisualStudio.Component.VSSDK `
-    -requires Microsoft.VisualStudio.Component.Roslyn.Compiler | ConvertFrom-Json
-
-  if ($lastExitCode -ne 0) {
-    Write-Host "Failed to locate Visual Studio (exit code '$lastExitCode')." -ForegroundColor Red
-    ExitWithExitCode $lastExitCode
-  }
-
-  # use first matching instance
-  return $vsInfo[0]
-}
-
-function ConfigureTools { 
-  # Include custom tools configuration
-  $script = Join-Path $EngRoot "configure-toolset.ps1"
-
-  if (Test-Path $script) {
-    . $script
-  }
-}
-
-function InitializeTools() {
-  ConfigureTools
-
-  $tools = $GlobalJson.tools
-
-  # Initialize dotnet cli if listed in 'tools'
-  $dotnetRoot = $null
-  if ((Get-Member -InputObject $tools -Name "dotnet") -ne $null) {
-    $dotnetRoot = InitializeDotNetCli -install:$restore
-  }
-
-  if (-not $msbuildEngine) {
-    # Presence of vswhere.version indicates the repo needs to build using VS msbuild.
-    if ((Get-Member -InputObject $tools -Name "vswhere") -ne $null) {
-      $msbuildEngine = "vs"
-    } elseif ($dotnetRoot -ne $null) {
-      $msbuildEngine = "dotnet"
-    } else {
-      Write-Host "-msbuildEngine must be specified, or /global.json must specify 'tools.dotnet' or 'tools.vswhere'." -ForegroundColor Red
-      ExitWithExitCode 1
-    }
-  }
-
-  if ($msbuildEngine -eq "dotnet") {
-    if (!$dotnetRoot) {
-      Write-Host "/global.json must specify 'tools.dotnet'." -ForegroundColor Red
-      ExitWithExitCode 1
-    }
-
-    $script:buildDriver = Join-Path $dotnetRoot "dotnet.exe"
-    $script:buildArgs = "msbuild"
-  } elseif ($msbuildEngine -eq "vs") {
-    $vsInstallDir = InitializeVisualStudioBuild
-
-    $script:buildDriver = Join-Path $vsInstallDir "MSBuild\15.0\Bin\msbuild.exe"
-    $script:buildArgs = ""
-  } else {
-    Write-Host "Unexpected value of -msbuildEngine: '$msbuildEngine'." -ForegroundColor Red
-    ExitWithExitCode 1
-  }
-
-  InitializeToolSet $script:buildDriver $script:buildArgs
-  InitializeCustomToolset
-}
-
-function InitializeToolset([string] $buildDriver, [string]$buildArgs) {
-  $toolsetVersion = $GlobalJson.'msbuild-sdks'.'Microsoft.DotNet.Arcade.Sdk'
-  $toolsetLocationFile = Join-Path $ToolsetDir "$toolsetVersion.txt"
-
-  if (Test-Path $toolsetLocationFile) {
-    $path = Get-Content $toolsetLocationFile -TotalCount 1
-    if (Test-Path $path) {
-      $script:ToolsetBuildProj = $path
-      return
-    }
-  }
-
-  if (-not $restore) {
-    Write-Host  "Toolset version $toolsetVersion has not been restored."
-    ExitWithExitCode 1
-  }
-
-  $ToolsetRestoreLog = Join-Path $LogDir "ToolsetRestore.binlog"
-  $proj = Join-Path $ToolsetDir "restore.proj"
-
-  '<Project Sdk="Microsoft.DotNet.Arcade.Sdk"/>' | Set-Content $proj
-  MSBuild $proj /t:__WriteToolsetLocation /clp:None /bl:$ToolsetRestoreLog /p:__ToolsetLocationOutputFile=$toolsetLocationFile
-
-  if ($lastExitCode -ne 0) {
-    Write-Host "Failed to restore toolset (exit code '$lastExitCode'). See log: $ToolsetRestoreLog" -ForegroundColor Red
-    ExitWithExitCode $lastExitCode
-  }
-
-  $path = Get-Content $toolsetLocationFile -TotalCount 1
-  if (!(Test-Path $path)) {
-    throw "Invalid toolset path: $path"
-  }
-
-  $script:ToolsetBuildProj = $path
-}
-
-function InitializeCustomToolset {
-  if (-not $restore) {
-    return
-  }
-
-  $script = Join-Path $EngRoot "restore-toolset.ps1"
-
-  if (Test-Path $script) {
-    . $script
-  }
-}
-
-function ExitWithExitCode([int] $exitCode) {
-  if ($ci -and $prepareMachine) {
-    Stop-Processes
-  }
-  exit $exitCode
-}
-
-function Stop-Processes() {
-  Write-Host "Killing running build processes..."
-  Get-Process -Name "msbuild" -ErrorAction SilentlyContinue | Stop-Process
-  Get-Process -Name "dotnet" -ErrorAction SilentlyContinue | Stop-Process
-  Get-Process -Name "vbcscompiler" -ErrorAction SilentlyContinue | Stop-Process
-}
-
-function MsBuild() {
-  $warnaserrorSwitch = if ($warnaserror) { "/warnaserror" } else { "" }
-  & $buildDriver $buildArgs $warnaserrorSwitch /m /nologo /clp:Summary /v:$verbosity /nr:$nodereuse $args
-}
-
-$RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
-$EngRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
-$ArtifactsDir = Join-Path $RepoRoot "artifacts"
-$ToolsetDir = Join-Path $ArtifactsDir "toolset"
-$LogDir = Join-Path (Join-Path $ArtifactsDir "log") $configuration
-$TempDir = Join-Path (Join-Path $ArtifactsDir "tmp") $configuration
-$GlobalJson = Get-Content -Raw -Path (Join-Path $RepoRoot "global.json") | ConvertFrom-Json
-
-if ($env:NUGET_PACKAGES -eq $null) {
-  # Use local cache on CI to ensure deterministic build,
-  # use global cache in dev builds to avoid cost of downloading packages.
-  $env:NUGET_PACKAGES = if ($ci) { Join-Path $RepoRoot ".packages" }
-                        else { Join-Path $env:UserProfile ".nuget\packages" }
-}
-
-Create-Directory $ToolsetDir
-Create-Directory $LogDir
-
-if ($ci) {
-  Create-Directory $TempDir
-  $env:TEMP = $TempDir
-  $env:TMP = $TempDir
-}
+IyBJbml0aWFsaXplIHZhcmlhYmxlcyBpZiB0aGV5IGFyZW4ndCBhbHJlYWR5
+IGRlZmluZWQKCiRjaSA9IGlmIChUZXN0LVBhdGggdmFyaWFibGU6Y2kpIHsg
+JGNpIH0gZWxzZSB7ICRmYWxzZSB9CiRjb25maWd1cmF0aW9uID0gaWYgKFRl
+c3QtUGF0aCB2YXJpYWJsZTpjb25maWd1cmF0aW9uKSB7ICRjb25maWd1cmF0
+aW9uIH0gZWxzZSB7ICJEZWJ1ZyIgfQokbm9kZXJldXNlID0gaWYgKFRlc3Qt
+UGF0aCB2YXJpYWJsZTpub2RlcmV1c2UpIHsgJG5vZGVyZXVzZSB9IGVsc2Ug
+eyAhJGNpIH0KJHByZXBhcmVNYWNoaW5lID0gaWYgKFRlc3QtUGF0aCB2YXJp
+YWJsZTpwcmVwYXJlTWFjaGluZSkgeyAkcHJlcGFyZU1hY2hpbmUgfSBlbHNl
+IHsgJGZhbHNlIH0KJHJlc3RvcmUgPSBpZiAoVGVzdC1QYXRoIHZhcmlhYmxl
+OnJlc3RvcmUpIHsgJHJlc3RvcmUgfSBlbHNlIHsgJHRydWUgfQokdmVyYm9z
+aXR5ID0gaWYgKFRlc3QtUGF0aCB2YXJpYWJsZTp2ZXJib3NpdHkpIHsgJHZl
+cmJvc2l0eSB9IGVsc2UgeyAibWluaW1hbCIgfQokd2FybmFzZXJyb3IgPSBp
+ZiAoVGVzdC1QYXRoIHZhcmlhYmxlOndhcm5hc2Vycm9yKSB7ICR3YXJuYXNl
+cnJvciB9IGVsc2UgeyAkdHJ1ZSB9CiRtc2J1aWxkRW5naW5lID0gaWYgKFRl
+c3QtUGF0aCB2YXJpYWJsZTptc2J1aWxkRW5naW5lKSB7ICRtc2J1aWxkRW5n
+aW5lIH0gZWxzZSB7ICRudWxsIH0KJHVzZUluc3RhbGxlZERvdE5ldENsaSA9
+IGlmIChUZXN0LVBhdGggdmFyaWFibGU6dXNlSW5zdGFsbGVkRG90TmV0Q2xp
+KSB7ICR1c2VJbnN0YWxsZWREb3ROZXRDbGkgfSBlbHNlIHsgJHRydWUgfQoK
+c2V0LXN0cmljdG1vZGUgLXZlcnNpb24gMi4wCiRFcnJvckFjdGlvblByZWZl
+cmVuY2UgPSAiU3RvcCIKW05ldC5TZXJ2aWNlUG9pbnRNYW5hZ2VyXTo6U2Vj
+dXJpdHlQcm90b2NvbCA9IFtOZXQuU2VjdXJpdHlQcm90b2NvbFR5cGVdOjpU
+bHMxMgoKZnVuY3Rpb24gQ3JlYXRlLURpcmVjdG9yeShbc3RyaW5nW11dICRw
+YXRoKSB7CiAgaWYgKCEoVGVzdC1QYXRoICRwYXRoKSkgewogICAgTmV3LUl0
+ZW0gLXBhdGggJHBhdGggLWZvcmNlIC1pdGVtVHlwZSAiRGlyZWN0b3J5IiB8
+IE91dC1OdWxsCiAgfQp9CgpmdW5jdGlvbiBJbml0aWFsaXplRG90TmV0Q2xp
+KFtib29sXSRpbnN0YWxsKSB7CiAgIyBEb24ndCByZXNvbHZlIHJ1bnRpbWUs
+IHNoYXJlZCBmcmFtZXdvcmssIG9yIFNESyBmcm9tIG90aGVyIGxvY2F0aW9u
+cyB0byBlbnN1cmUgYnVpbGQgZGV0ZXJtaW5pc20KICAkZW52OkRPVE5FVF9N
+VUxUSUxFVkVMX0xPT0tVUD0wCgogICMgRGlzYWJsZSBmaXJzdCBydW4gc2lu
+Y2Ugd2UgZG8gbm90IG5lZWQgYWxsIEFTUC5ORVQgcGFja2FnZXMgcmVzdG9y
+ZWQuCiAgJGVudjpET1RORVRfU0tJUF9GSVJTVF9USU1FX0VYUEVSSUVOQ0U9
+MQoKICAjIFNvdXJjZSBCdWlsZCB1c2VzIERvdE5ldENvcmVTZGtEaXIgdmFy
+aWFibGUKICBpZiAoJGVudjpEb3ROZXRDb3JlU2RrRGlyIC1uZSAkbnVsbCkg
+ewogICAgJGVudjpET1RORVRfSU5TVEFMTF9ESVIgPSAkZW52OkRvdE5ldENv
+cmVTZGtEaXIKICB9CgogICMgRmluZCB0aGUgZmlyc3QgcGF0aCBvbiAlUEFU
+SCUgdGhhdCBjb250YWlucyB0aGUgZG90bmV0LmV4ZQogIGlmICgkdXNlSW5z
+dGFsbGVkRG90TmV0Q2xpIC1hbmQgKCRlbnY6RE9UTkVUX0lOU1RBTExfRElS
+IC1lcSAkbnVsbCkpIHsKICAgICRlbnY6RE9UTkVUX0lOU1RBTExfRElSID0g
+JHtlbnY6UEFUSH0uU3BsaXQoJzsnKSB8IHdoZXJlIHsgKCRfIC1uZSAiIikg
+LWFuZCAoVGVzdC1QYXRoIChKb2luLVBhdGggJF8gImRvdG5ldC5leGUiKSkg
+fQogIH0KCiAgJGRvdG5ldFNka1ZlcnNpb24gPSAkR2xvYmFsSnNvbi50b29s
+cy5kb3RuZXQKCiAgIyBVc2UgZG90bmV0IGluc3RhbGxhdGlvbiBzcGVjaWZp
+ZWQgaW4gRE9UTkVUX0lOU1RBTExfRElSIGlmIGl0IGNvbnRhaW5zIHRoZSBy
+ZXF1aXJlZCBTREsgdmVyc2lvbiwKICAjIG90aGVyd2lzZSBpbnN0YWxsIHRo
+ZSBkb3RuZXQgQ0xJIGFuZCBTREsgdG8gcmVwbyBsb2NhbCAuZG90bmV0IGRp
+cmVjdG9yeSB0byBhdm9pZCBwb3RlbnRpYWwgcGVybWlzc2lvbiBpc3N1ZXMu
+CiAgaWYgKCgkZW52OkRPVE5FVF9JTlNUQUxMX0RJUiAtbmUgJG51bGwpIC1h
+bmQgKFRlc3QtUGF0aChKb2luLVBhdGggJGVudjpET1RORVRfSU5TVEFMTF9E
+SVIgInNka1wkZG90bmV0U2RrVmVyc2lvbiIpKSkgewogICAgJGRvdG5ldFJv
+b3QgPSAkZW52OkRPVE5FVF9JTlNUQUxMX0RJUgogIH0gZWxzZSB7CiAgICAk
+ZG90bmV0Um9vdCA9IEpvaW4tUGF0aCAkUmVwb1Jvb3QgIi5kb3RuZXQiCiAg
+ICAkZW52OkRPVE5FVF9JTlNUQUxMX0RJUiA9ICRkb3RuZXRSb290CgogICAg
+aWYgKC1ub3QgKFRlc3QtUGF0aChKb2luLVBhdGggJGVudjpET1RORVRfSU5T
+VEFMTF9ESVIgInNka1wkZG90bmV0U2RrVmVyc2lvbiIpKSkgewogICAgICBp
+ZiAoJGluc3RhbGwpIHsKICAgICAgICBJbnN0YWxsRG90TmV0U2RrICRkb3Ru
+ZXRSb290ICRkb3RuZXRTZGtWZXJzaW9uCiAgICAgIH0gZWxzZSB7CiAgICAg
+ICAgV3JpdGUtSG9zdCAiVW5hYmxlIHRvIGZpbmQgZG90bmV0IHdpdGggU0RL
+IHZlcnNpb24gJyRkb3RuZXRTZGtWZXJzaW9uJyIgLUZvcmVncm91bmRDb2xv
+ciBSZWQKICAgICAgICBFeGl0V2l0aEV4aXRDb2RlIDEKICAgICAgfQogICAg
+fQogIH0KCiAgcmV0dXJuICRkb3RuZXRSb290Cn0KCmZ1bmN0aW9uIEdldERv
+dE5ldEluc3RhbGxTY3JpcHQoW3N0cmluZ10gJGRvdG5ldFJvb3QpIHsKICAk
+aW5zdGFsbFNjcmlwdCA9ICIkZG90bmV0Um9vdFxkb3RuZXQtaW5zdGFsbC5w
+czEiCiAgaWYgKCEoVGVzdC1QYXRoICRpbnN0YWxsU2NyaXB0KSkgewogICAg
+Q3JlYXRlLURpcmVjdG9yeSAkZG90bmV0Um9vdAogICAgSW52b2tlLVdlYlJl
+cXVlc3QgImh0dHBzOi8vZG90Lm5ldC92MS9kb3RuZXQtaW5zdGFsbC5wczEi
+IC1PdXRGaWxlICRpbnN0YWxsU2NyaXB0CiAgfQoKICByZXR1cm4gJGluc3Rh
+bGxTY3JpcHQKfQoKZnVuY3Rpb24gSW5zdGFsbERvdE5ldFNkayhbc3RyaW5n
+XSAkZG90bmV0Um9vdCwgW3N0cmluZ10gJHZlcnNpb24pIHsKICAkaW5zdGFs
+bFNjcmlwdCA9IEdldERvdE5ldEluc3RhbGxTY3JpcHQgJGRvdG5ldFJvb3QK
+ICAmICRpbnN0YWxsU2NyaXB0IC1WZXJzaW9uICR2ZXJzaW9uIC1JbnN0YWxs
+RGlyICRkb3RuZXRSb290CiAgaWYgKCRsYXN0RXhpdENvZGUgLW5lIDApIHsK
+ICAgIFdyaXRlLUhvc3QgIkZhaWxlZCB0byBpbnN0YWxsIGRvdG5ldCBjbGkg
+KGV4aXQgY29kZSAnJGxhc3RFeGl0Q29kZScpLiIgLUZvcmVncm91bmRDb2xv
+ciBSZWQKICAgIEV4aXRXaXRoRXhpdENvZGUgJGxhc3RFeGl0Q29kZQogIH0K
+fQoKZnVuY3Rpb24gSW5pdGlhbGl6ZVZpc3VhbFN0dWRpb0J1aWxkIHsKICAk
+dnNUb29sc1BhdGggPSAkZW52OlZTMTUwQ09NTlRPT0xTCiAgaWYgKCR2c1Rv
+b2xzUGF0aCAtZXEgJG51bGwpIHsgCiAgICAkdnNUb29sc1BhdGggPSAkZW52
+OlZTMTYwQ09NTlRPT0xTCiAgfQoKICBpZiAoKCR2c1Rvb2xzUGF0aCAtbmUg
+JG51bGwpIC1hbmQgKFRlc3QtUGF0aCAkdnNUb29sc1BhdGgpKSB7CiAgICAk
+dnNJbnN0YWxsRGlyID0gW1N5c3RlbS5JTy5QYXRoXTo6R2V0RnVsbFBhdGgo
+KEpvaW4tUGF0aCAkdnNUb29sc1BhdGggIi4uXC4uIikpCiAgfSBlbHNlIHsK
+ICAgICR2c0luZm8gPSBMb2NhdGVWaXN1YWxTdHVkaW8KCiAgICAkdnNJbnN0
+YWxsRGlyID0gJHZzSW5mby5pbnN0YWxsYXRpb25QYXRoCiAgICAkdnNTZGtJ
+bnN0YWxsRGlyID0gSm9pbi1QYXRoICR2c0luc3RhbGxEaXIgIlZTU0RLXCIK
+ICAgICR2c1ZlcnNpb24gPSAkdnNJbmZvLmluc3RhbGxhdGlvblZlcnNpb24u
+U3BsaXQoJy4nKVswXSArICIwIgoKICAgIFNldC1JdGVtICJlbnY6VlMkKCR2
+c1ZlcnNpb24pQ09NTlRPT0xTIiAoSm9pbi1QYXRoICR2c0luc3RhbGxEaXIg
+IkNvbW1vbjdcVG9vbHNcIikgICAgCiAgICBTZXQtSXRlbSAiZW52OlZTU0RL
+JCgkdnNWZXJzaW9uKUluc3RhbGwiICR2c1Nka0luc3RhbGxEaXIKICAgICRl
+bnY6VlNTREtJbnN0YWxsID0gJHZzU2RrSW5zdGFsbERpcgogIH0KCiAgcmV0
+dXJuICR2c0luc3RhbGxEaXIKfQoKZnVuY3Rpb24gTG9jYXRlVmlzdWFsU3R1
+ZGlvIHsKICAkdnN3aGVyZVZlcnNpb24gPSAkR2xvYmFsSnNvbi50b29scy52
+c3doZXJlCgogIGlmICghJHZzV2hlcmVWZXJzaW9uKSB7CiAgICBXcml0ZS1I
+b3N0ICJ2c3doZXJlIHZlcnNpb24gbXVzdCBiZSBzcGVjaWZpZWQgaW4gL2ds
+b2JhbC5qc29uLiIgLUZvcmVncm91bmRDb2xvciBSZWQKICAgIEV4aXRXaXRo
+RXhpdENvZGUgMQogIH0KCiAgJHRvb2xzUm9vdCA9IEpvaW4tUGF0aCAkUmVw
+b1Jvb3QgIi50b29scyIKICAkdnNXaGVyZURpciA9IEpvaW4tUGF0aCAkdG9v
+bHNSb290ICJ2c3doZXJlXCR2c3doZXJlVmVyc2lvbiIKICAkdnNXaGVyZUV4
+ZSA9IEpvaW4tUGF0aCAkdnNXaGVyZURpciAidnN3aGVyZS5leGUiCgogIGlm
+ICghKFRlc3QtUGF0aCAkdnNXaGVyZUV4ZSkpIHsKICAgIENyZWF0ZS1EaXJl
+Y3RvcnkgJHZzV2hlcmVEaXIKICAgIFdyaXRlLUhvc3QgIkRvd25sb2FkaW5n
+IHZzd2hlcmUiCiAgICBJbnZva2UtV2ViUmVxdWVzdCAiaHR0cHM6Ly9naXRo
+dWIuY29tL01pY3Jvc29mdC92c3doZXJlL3JlbGVhc2VzL2Rvd25sb2FkLyR2
+c3doZXJlVmVyc2lvbi92c3doZXJlLmV4ZSIgLU91dEZpbGUgJHZzd2hlcmVF
+eGUKICB9CgogICR2c0luZm8gPSAmICR2c1doZXJlRXhlIGAKICAgIC1sYXRl
+c3QgYAogICAgLXByZXJlbGVhc2UgYAogICAgLWZvcm1hdCBqc29uIGAKICAg
+IC1yZXF1aXJlcyBNaWNyb3NvZnQuQ29tcG9uZW50Lk1TQnVpbGQgYAogICAg
+LXJlcXVpcmVzIE1pY3Jvc29mdC5WaXN1YWxTdHVkaW8uQ29tcG9uZW50LlZT
+U0RLIGAKICAgIC1yZXF1aXJlcyBNaWNyb3NvZnQuVmlzdWFsU3R1ZGlvLkNv
+bXBvbmVudC5Sb3NseW4uQ29tcGlsZXIgfCBDb252ZXJ0RnJvbS1Kc29uCgog
+IGlmICgkbGFzdEV4aXRDb2RlIC1uZSAwKSB7CiAgICBXcml0ZS1Ib3N0ICJG
+YWlsZWQgdG8gbG9jYXRlIFZpc3VhbCBTdHVkaW8gKGV4aXQgY29kZSAnJGxh
+c3RFeGl0Q29kZScpLiIgLUZvcmVncm91bmRDb2xvciBSZWQKICAgIEV4aXRX
+aXRoRXhpdENvZGUgJGxhc3RFeGl0Q29kZQogIH0KCiAgIyB1c2UgZmlyc3Qg
+bWF0Y2hpbmcgaW5zdGFuY2UKICByZXR1cm4gJHZzSW5mb1swXQp9CgpmdW5j
+dGlvbiBDb25maWd1cmVUb29scyB7IAogICMgSW5jbHVkZSBjdXN0b20gdG9v
+bHMgY29uZmlndXJhdGlvbgogICRzY3JpcHQgPSBKb2luLVBhdGggJEVuZ1Jv
+b3QgImNvbmZpZ3VyZS10b29sc2V0LnBzMSIKCiAgaWYgKFRlc3QtUGF0aCAk
+c2NyaXB0KSB7CiAgICAuICRzY3JpcHQKICB9Cn0KCmZ1bmN0aW9uIEluaXRp
+YWxpemVUb29scygpIHsKICBDb25maWd1cmVUb29scwoKICAkdG9vbHMgPSAk
+R2xvYmFsSnNvbi50b29scwoKICAjIEluaXRpYWxpemUgZG90bmV0IGNsaSBp
+ZiBsaXN0ZWQgaW4gJ3Rvb2xzJwogICRkb3RuZXRSb290ID0gJG51bGwKICBp
+ZiAoKEdldC1NZW1iZXIgLUlucHV0T2JqZWN0ICR0b29scyAtTmFtZSAiZG90
+bmV0IikgLW5lICRudWxsKSB7CiAgICAkZG90bmV0Um9vdCA9IEluaXRpYWxp
+emVEb3ROZXRDbGkgLWluc3RhbGw6JHJlc3RvcmUKICB9CgogIGlmICgtbm90
+ICRtc2J1aWxkRW5naW5lKSB7CiAgICAjIFByZXNlbmNlIG9mIHZzd2hlcmUu
+dmVyc2lvbiBpbmRpY2F0ZXMgdGhlIHJlcG8gbmVlZHMgdG8gYnVpbGQgdXNp
+bmcgVlMgbXNidWlsZC4KICAgIGlmICgoR2V0LU1lbWJlciAtSW5wdXRPYmpl
+Y3QgJHRvb2xzIC1OYW1lICJ2c3doZXJlIikgLW5lICRudWxsKSB7CiAgICAg
+ICRtc2J1aWxkRW5naW5lID0gInZzIgogICAgfSBlbHNlaWYgKCRkb3RuZXRS
+b290IC1uZSAkbnVsbCkgewogICAgICAkbXNidWlsZEVuZ2luZSA9ICJkb3Ru
+ZXQiCiAgICB9IGVsc2UgewogICAgICBXcml0ZS1Ib3N0ICItbXNidWlsZEVu
+Z2luZSBtdXN0IGJlIHNwZWNpZmllZCwgb3IgL2dsb2JhbC5qc29uIG11c3Qg
+c3BlY2lmeSAndG9vbHMuZG90bmV0JyBvciAndG9vbHMudnN3aGVyZScuIiAt
+Rm9yZWdyb3VuZENvbG9yIFJlZAogICAgICBFeGl0V2l0aEV4aXRDb2RlIDEK
+ICAgIH0KICB9CgogIGlmICgkbXNidWlsZEVuZ2luZSAtZXEgImRvdG5ldCIp
+IHsKICAgIGlmICghJGRvdG5ldFJvb3QpIHsKICAgICAgV3JpdGUtSG9zdCAi
+L2dsb2JhbC5qc29uIG11c3Qgc3BlY2lmeSAndG9vbHMuZG90bmV0Jy4iIC1G
+b3JlZ3JvdW5kQ29sb3IgUmVkCiAgICAgIEV4aXRXaXRoRXhpdENvZGUgMQog
+ICAgfQoKICAgICRzY3JpcHQ6YnVpbGREcml2ZXIgPSBKb2luLVBhdGggJGRv
+dG5ldFJvb3QgImRvdG5ldC5leGUiCiAgICAkc2NyaXB0OmJ1aWxkQXJncyA9
+ICJtc2J1aWxkIgogIH0gZWxzZWlmICgkbXNidWlsZEVuZ2luZSAtZXEgInZz
+IikgewogICAgJHZzSW5zdGFsbERpciA9IEluaXRpYWxpemVWaXN1YWxTdHVk
+aW9CdWlsZAoKICAgICRzY3JpcHQ6YnVpbGREcml2ZXIgPSBKb2luLVBhdGgg
+JHZzSW5zdGFsbERpciAiTVNCdWlsZFwxNS4wXEJpblxtc2J1aWxkLmV4ZSIK
+ICAgICRzY3JpcHQ6YnVpbGRBcmdzID0gIiIKICB9IGVsc2UgewogICAgV3Jp
+dGUtSG9zdCAiVW5leHBlY3RlZCB2YWx1ZSBvZiAtbXNidWlsZEVuZ2luZTog
+JyRtc2J1aWxkRW5naW5lJy4iIC1Gb3JlZ3JvdW5kQ29sb3IgUmVkCiAgICBF
+eGl0V2l0aEV4aXRDb2RlIDEKICB9CgogIEluaXRpYWxpemVUb29sU2V0ICRz
+Y3JpcHQ6YnVpbGREcml2ZXIgJHNjcmlwdDpidWlsZEFyZ3MKICBJbml0aWFs
+aXplQ3VzdG9tVG9vbHNldAp9CgpmdW5jdGlvbiBJbml0aWFsaXplVG9vbHNl
+dChbc3RyaW5nXSAkYnVpbGREcml2ZXIsIFtzdHJpbmddJGJ1aWxkQXJncykg
+ewogICR0b29sc2V0VmVyc2lvbiA9ICRHbG9iYWxKc29uLidtc2J1aWxkLXNk
+a3MnLidNaWNyb3NvZnQuRG90TmV0LkFyY2FkZS5TZGsnCiAgJHRvb2xzZXRM
+b2NhdGlvbkZpbGUgPSBKb2luLVBhdGggJFRvb2xzZXREaXIgIiR0b29sc2V0
+VmVyc2lvbi50eHQiCgogIGlmIChUZXN0LVBhdGggJHRvb2xzZXRMb2NhdGlv
+bkZpbGUpIHsKICAgICRwYXRoID0gR2V0LUNvbnRlbnQgJHRvb2xzZXRMb2Nh
+dGlvbkZpbGUgLVRvdGFsQ291bnQgMQogICAgaWYgKFRlc3QtUGF0aCAkcGF0
+aCkgewogICAgICAkc2NyaXB0OlRvb2xzZXRCdWlsZFByb2ogPSAkcGF0aAog
+ICAgICByZXR1cm4KICAgIH0KICB9CgogIGlmICgtbm90ICRyZXN0b3JlKSB7
+CiAgICBXcml0ZS1Ib3N0ICAiVG9vbHNldCB2ZXJzaW9uICR0b29sc2V0VmVy
+c2lvbiBoYXMgbm90IGJlZW4gcmVzdG9yZWQuIgogICAgRXhpdFdpdGhFeGl0
+Q29kZSAxCiAgfQoKICAkVG9vbHNldFJlc3RvcmVMb2cgPSBKb2luLVBhdGgg
+JExvZ0RpciAiVG9vbHNldFJlc3RvcmUuYmlubG9nIgogICRwcm9qID0gSm9p
+bi1QYXRoICRUb29sc2V0RGlyICJyZXN0b3JlLnByb2oiCgogICc8UHJvamVj
+dCBTZGs9Ik1pY3Jvc29mdC5Eb3ROZXQuQXJjYWRlLlNkayIvPicgfCBTZXQt
+Q29udGVudCAkcHJvagogIE1TQnVpbGQgJHByb2ogL3Q6X19Xcml0ZVRvb2xz
+ZXRMb2NhdGlvbiAvY2xwOk5vbmUgL2JsOiRUb29sc2V0UmVzdG9yZUxvZyAv
+cDpfX1Rvb2xzZXRMb2NhdGlvbk91dHB1dEZpbGU9JHRvb2xzZXRMb2NhdGlv
+bkZpbGUKCiAgaWYgKCRsYXN0RXhpdENvZGUgLW5lIDApIHsKICAgIFdyaXRl
+LUhvc3QgIkZhaWxlZCB0byByZXN0b3JlIHRvb2xzZXQgKGV4aXQgY29kZSAn
+JGxhc3RFeGl0Q29kZScpLiBTZWUgbG9nOiAkVG9vbHNldFJlc3RvcmVMb2ci
+IC1Gb3JlZ3JvdW5kQ29sb3IgUmVkCiAgICBFeGl0V2l0aEV4aXRDb2RlICRs
+YXN0RXhpdENvZGUKICB9CgogICRwYXRoID0gR2V0LUNvbnRlbnQgJHRvb2xz
+ZXRMb2NhdGlvbkZpbGUgLVRvdGFsQ291bnQgMQogIGlmICghKFRlc3QtUGF0
+aCAkcGF0aCkpIHsKICAgIHRocm93ICJJbnZhbGlkIHRvb2xzZXQgcGF0aDog
+JHBhdGgiCiAgfQoKICAkc2NyaXB0OlRvb2xzZXRCdWlsZFByb2ogPSAkcGF0
+aAp9CgpmdW5jdGlvbiBJbml0aWFsaXplQ3VzdG9tVG9vbHNldCB7CiAgaWYg
+KC1ub3QgJHJlc3RvcmUpIHsKICAgIHJldHVybgogIH0KCiAgJHNjcmlwdCA9
+IEpvaW4tUGF0aCAkRW5nUm9vdCAicmVzdG9yZS10b29sc2V0LnBzMSIKCiAg
+aWYgKFRlc3QtUGF0aCAkc2NyaXB0KSB7CiAgICAuICRzY3JpcHQKICB9Cn0K
+CmZ1bmN0aW9uIEV4aXRXaXRoRXhpdENvZGUoW2ludF0gJGV4aXRDb2RlKSB7
+CiAgaWYgKCRjaSAtYW5kICRwcmVwYXJlTWFjaGluZSkgewogICAgU3RvcC1Q
+cm9jZXNzZXMKICB9CiAgZXhpdCAkZXhpdENvZGUKfQoKZnVuY3Rpb24gU3Rv
+cC1Qcm9jZXNzZXMoKSB7CiAgV3JpdGUtSG9zdCAiS2lsbGluZyBydW5uaW5n
+IGJ1aWxkIHByb2Nlc3Nlcy4uLiIKICBHZXQtUHJvY2VzcyAtTmFtZSAibXNi
+dWlsZCIgLUVycm9yQWN0aW9uIFNpbGVudGx5Q29udGludWUgfCBTdG9wLVBy
+b2Nlc3MKICBHZXQtUHJvY2VzcyAtTmFtZSAiZG90bmV0IiAtRXJyb3JBY3Rp
+b24gU2lsZW50bHlDb250aW51ZSB8IFN0b3AtUHJvY2VzcwogIEdldC1Qcm9j
+ZXNzIC1OYW1lICJ2YmNzY29tcGlsZXIiIC1FcnJvckFjdGlvbiBTaWxlbnRs
+eUNvbnRpbnVlIHwgU3RvcC1Qcm9jZXNzCn0KCmZ1bmN0aW9uIE1zQnVpbGQo
+KSB7CiAgJHdhcm5hc2Vycm9yU3dpdGNoID0gaWYgKCR3YXJuYXNlcnJvcikg
+eyAiL3dhcm5hc2Vycm9yIiB9IGVsc2UgeyAiIiB9CiAgJiAkYnVpbGREcml2
+ZXIgJGJ1aWxkQXJncyAkd2FybmFzZXJyb3JTd2l0Y2ggL20gL25vbG9nbyAv
+Y2xwOlN1bW1hcnkgL3Y6JHZlcmJvc2l0eSAvbnI6JG5vZGVyZXVzZSAkYXJn
+cwp9CgokUmVwb1Jvb3QgPSBSZXNvbHZlLVBhdGggKEpvaW4tUGF0aCAkUFNT
+Y3JpcHRSb290ICIuLlwuLiIpCiRFbmdSb290ID0gUmVzb2x2ZS1QYXRoIChK
+b2luLVBhdGggJFBTU2NyaXB0Um9vdCAiLi4iKQokQXJ0aWZhY3RzRGlyID0g
+Sm9pbi1QYXRoICRSZXBvUm9vdCAiYXJ0aWZhY3RzIgokVG9vbHNldERpciA9
+IEpvaW4tUGF0aCAkQXJ0aWZhY3RzRGlyICJ0b29sc2V0IgokTG9nRGlyID0g
+Sm9pbi1QYXRoIChKb2luLVBhdGggJEFydGlmYWN0c0RpciAibG9nIikgJGNv
+bmZpZ3VyYXRpb24KJFRlbXBEaXIgPSBKb2luLVBhdGggKEpvaW4tUGF0aCAk
+QXJ0aWZhY3RzRGlyICJ0bXAiKSAkY29uZmlndXJhdGlvbgokR2xvYmFsSnNv
+biA9IEdldC1Db250ZW50IC1SYXcgLVBhdGggKEpvaW4tUGF0aCAkUmVwb1Jv
+b3QgImdsb2JhbC5qc29uIikgfCBDb252ZXJ0RnJvbS1Kc29uCgppZiAoJGVu
+djpOVUdFVF9QQUNLQUdFUyAtZXEgJG51bGwpIHsKICAjIFVzZSBsb2NhbCBj
+YWNoZSBvbiBDSSB0byBlbnN1cmUgZGV0ZXJtaW5pc3RpYyBidWlsZCwKICAj
+IHVzZSBnbG9iYWwgY2FjaGUgaW4gZGV2IGJ1aWxkcyB0byBhdm9pZCBjb3N0
+IG9mIGRvd25sb2FkaW5nIHBhY2thZ2VzLgogICRlbnY6TlVHRVRfUEFDS0FH
+RVMgPSBpZiAoJGNpKSB7IEpvaW4tUGF0aCAkUmVwb1Jvb3QgIi5wYWNrYWdl
+cyIgfQogICAgICAgICAgICAgICAgICAgICAgICBlbHNlIHsgSm9pbi1QYXRo
+ICRlbnY6VXNlclByb2ZpbGUgIi5udWdldFxwYWNrYWdlcyIgfQp9CgpDcmVh
+dGUtRGlyZWN0b3J5ICRUb29sc2V0RGlyCkNyZWF0ZS1EaXJlY3RvcnkgJExv
+Z0RpcgoKaWYgKCRjaSkgewogIENyZWF0ZS1EaXJlY3RvcnkgJFRlbXBEaXIK
+ICAkZW52OlRFTVAgPSAkVGVtcERpcgogICRlbnY6VE1QID0gJFRlbXBEaXIK
+fQo=

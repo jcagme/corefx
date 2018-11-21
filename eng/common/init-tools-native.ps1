@@ -1,128 +1,84 @@
-<#
-.SYNOPSIS
-Entry point script for installing native tools
-
-.DESCRIPTION
-Reads $RepoRoot\global.json file to determine native assets to install
-and executes installers for those tools
-
-.PARAMETER BaseUri
-Base file directory or Url from which to acquire tool archives
-
-.PARAMETER InstallDirectory
-Directory to install native toolset.  This is a command-line override for the default
-Install directory precedence order:
-- InstallDirectory command-line override
-- NETCOREENG_INSTALL_DIRECTORY environment variable
-- (default) %USERPROFILE%/.netcoreeng/native
-
-.PARAMETER Clean
-Switch specifying to not install anything, but cleanup native asset folders
-
-.PARAMETER Force
-Clean and then install tools
-
-.PARAMETER DownloadRetries
-Total number of retry attempts
-
-.PARAMETER RetryWaitTimeInSeconds
-Wait time between retry attempts in seconds
-
-.PARAMETER GlobalJsonFile
-File path to global.json file
-
-.NOTES
-#>
-[CmdletBinding(PositionalBinding=$false)]
-Param (
-  [string] $BaseUri = "https://netcorenativeassets.blob.core.windows.net/resource-packages/external",
-  [string] $InstallDirectory,
-  [switch] $Clean = $False,
-  [switch] $Force = $False,
-  [int] $DownloadRetries = 5,
-  [int] $RetryWaitTimeInSeconds = 30,
-  [string] $GlobalJsonFile = "$PSScriptRoot\..\..\global.json"
-)
-
-Set-StrictMode -version 2.0
-$ErrorActionPreference="Stop"
-
-Import-Module -Name (Join-Path $PSScriptRoot "native\CommonLibrary.psm1")
-
-try {
-  # Define verbose switch if undefined
-  $Verbose = $VerbosePreference -Eq "Continue"
-
-  $EngCommonBaseDir = Join-Path $PSScriptRoot "native\"
-  $NativeBaseDir = $InstallDirectory
-  if (!$NativeBaseDir) {
-    $NativeBaseDir = CommonLibrary\Get-NativeInstallDirectory
-  }
-  $Env:CommonLibrary_NativeInstallDir = $NativeBaseDir
-  $InstallBin = Join-Path $NativeBaseDir "bin"
-  $InstallerPath = Join-Path $EngCommonBaseDir "install-tool.ps1"
-
-  # Process tools list
-  Write-Host "Processing $GlobalJsonFile"
-  If (-Not (Test-Path $GlobalJsonFile)) {
-    Write-Host "Unable to find '$GlobalJsonFile'"
-    exit 0
-  }
-  $NativeTools = Get-Content($GlobalJsonFile) -Raw |
-                    ConvertFrom-Json |
-                    Select-Object -Expand "native-tools" -ErrorAction SilentlyContinue
-  if ($NativeTools) {
-    $NativeTools.PSObject.Properties | ForEach-Object {
-      $ToolName = $_.Name
-      $ToolVersion = $_.Value
-      $LocalInstallerCommand = $InstallerPath
-      $LocalInstallerCommand += " -ToolName $ToolName"
-      $LocalInstallerCommand += " -InstallPath $InstallBin"
-      $LocalInstallerCommand += " -BaseUri $BaseUri"
-      $LocalInstallerCommand += " -CommonLibraryDirectory $EngCommonBaseDir"
-      $LocalInstallerCommand += " -Version $ToolVersion"
-
-      if ($Verbose) {
-        $LocalInstallerCommand += " -Verbose"
-      }
-      if (Get-Variable 'Force' -ErrorAction 'SilentlyContinue') {
-        if($Force) {
-          $LocalInstallerCommand += " -Force"
-        }
-      }
-      if ($Clean) {
-        $LocalInstallerCommand += " -Clean"
-      }
-
-      Write-Verbose "Installing $ToolName version $ToolVersion"
-      Write-Verbose "Executing '$LocalInstallerCommand'"
-      Invoke-Expression "$LocalInstallerCommand"
-      if ($LASTEXITCODE -Ne "0") {
-        Write-Error "Execution failed"
-        exit 1
-      }
-    }
-  }
-  else {
-    Write-Host "No native tools defined in global.json"
-    exit 0
-  }
-
-  if ($Clean) {
-    exit 0
-  }
-  if (Test-Path $InstallBin) {
-    Write-Host "Native tools are available from" (Convert-Path -Path $InstallBin)
-    Write-Host "##vso[task.prependpath]$(Convert-Path -Path $InstallBin)"
-  }
-  else {
-    Write-Error "Native tools install directory does not exist, installation failed"
-    exit 1
-  }
-  exit 0
-}
-catch {
-  Write-Host $_
-  Write-Host $_.Exception
-  exit 1
-}
+PCMKLlNZTk9QU0lTCkVudHJ5IHBvaW50IHNjcmlwdCBmb3IgaW5zdGFsbGlu
+ZyBuYXRpdmUgdG9vbHMKCi5ERVNDUklQVElPTgpSZWFkcyAkUmVwb1Jvb3Rc
+Z2xvYmFsLmpzb24gZmlsZSB0byBkZXRlcm1pbmUgbmF0aXZlIGFzc2V0cyB0
+byBpbnN0YWxsCmFuZCBleGVjdXRlcyBpbnN0YWxsZXJzIGZvciB0aG9zZSB0
+b29scwoKLlBBUkFNRVRFUiBCYXNlVXJpCkJhc2UgZmlsZSBkaXJlY3Rvcnkg
+b3IgVXJsIGZyb20gd2hpY2ggdG8gYWNxdWlyZSB0b29sIGFyY2hpdmVzCgou
+UEFSQU1FVEVSIEluc3RhbGxEaXJlY3RvcnkKRGlyZWN0b3J5IHRvIGluc3Rh
+bGwgbmF0aXZlIHRvb2xzZXQuICBUaGlzIGlzIGEgY29tbWFuZC1saW5lIG92
+ZXJyaWRlIGZvciB0aGUgZGVmYXVsdApJbnN0YWxsIGRpcmVjdG9yeSBwcmVj
+ZWRlbmNlIG9yZGVyOgotIEluc3RhbGxEaXJlY3RvcnkgY29tbWFuZC1saW5l
+IG92ZXJyaWRlCi0gTkVUQ09SRUVOR19JTlNUQUxMX0RJUkVDVE9SWSBlbnZp
+cm9ubWVudCB2YXJpYWJsZQotIChkZWZhdWx0KSAlVVNFUlBST0ZJTEUlLy5u
+ZXRjb3JlZW5nL25hdGl2ZQoKLlBBUkFNRVRFUiBDbGVhbgpTd2l0Y2ggc3Bl
+Y2lmeWluZyB0byBub3QgaW5zdGFsbCBhbnl0aGluZywgYnV0IGNsZWFudXAg
+bmF0aXZlIGFzc2V0IGZvbGRlcnMKCi5QQVJBTUVURVIgRm9yY2UKQ2xlYW4g
+YW5kIHRoZW4gaW5zdGFsbCB0b29scwoKLlBBUkFNRVRFUiBEb3dubG9hZFJl
+dHJpZXMKVG90YWwgbnVtYmVyIG9mIHJldHJ5IGF0dGVtcHRzCgouUEFSQU1F
+VEVSIFJldHJ5V2FpdFRpbWVJblNlY29uZHMKV2FpdCB0aW1lIGJldHdlZW4g
+cmV0cnkgYXR0ZW1wdHMgaW4gc2Vjb25kcwoKLlBBUkFNRVRFUiBHbG9iYWxK
+c29uRmlsZQpGaWxlIHBhdGggdG8gZ2xvYmFsLmpzb24gZmlsZQoKLk5PVEVT
+CiM+CltDbWRsZXRCaW5kaW5nKFBvc2l0aW9uYWxCaW5kaW5nPSRmYWxzZSld
+ClBhcmFtICgKICBbc3RyaW5nXSAkQmFzZVVyaSA9ICJodHRwczovL25ldGNv
+cmVuYXRpdmVhc3NldHMuYmxvYi5jb3JlLndpbmRvd3MubmV0L3Jlc291cmNl
+LXBhY2thZ2VzL2V4dGVybmFsIiwKICBbc3RyaW5nXSAkSW5zdGFsbERpcmVj
+dG9yeSwKICBbc3dpdGNoXSAkQ2xlYW4gPSAkRmFsc2UsCiAgW3N3aXRjaF0g
+JEZvcmNlID0gJEZhbHNlLAogIFtpbnRdICREb3dubG9hZFJldHJpZXMgPSA1
+LAogIFtpbnRdICRSZXRyeVdhaXRUaW1lSW5TZWNvbmRzID0gMzAsCiAgW3N0
+cmluZ10gJEdsb2JhbEpzb25GaWxlID0gIiRQU1NjcmlwdFJvb3RcLi5cLi5c
+Z2xvYmFsLmpzb24iCikKClNldC1TdHJpY3RNb2RlIC12ZXJzaW9uIDIuMAok
+RXJyb3JBY3Rpb25QcmVmZXJlbmNlPSJTdG9wIgoKSW1wb3J0LU1vZHVsZSAt
+TmFtZSAoSm9pbi1QYXRoICRQU1NjcmlwdFJvb3QgIm5hdGl2ZVxDb21tb25M
+aWJyYXJ5LnBzbTEiKQoKdHJ5IHsKICAjIERlZmluZSB2ZXJib3NlIHN3aXRj
+aCBpZiB1bmRlZmluZWQKICAkVmVyYm9zZSA9ICRWZXJib3NlUHJlZmVyZW5j
+ZSAtRXEgIkNvbnRpbnVlIgoKICAkRW5nQ29tbW9uQmFzZURpciA9IEpvaW4t
+UGF0aCAkUFNTY3JpcHRSb290ICJuYXRpdmVcIgogICROYXRpdmVCYXNlRGly
+ID0gJEluc3RhbGxEaXJlY3RvcnkKICBpZiAoISROYXRpdmVCYXNlRGlyKSB7
+CiAgICAkTmF0aXZlQmFzZURpciA9IENvbW1vbkxpYnJhcnlcR2V0LU5hdGl2
+ZUluc3RhbGxEaXJlY3RvcnkKICB9CiAgJEVudjpDb21tb25MaWJyYXJ5X05h
+dGl2ZUluc3RhbGxEaXIgPSAkTmF0aXZlQmFzZURpcgogICRJbnN0YWxsQmlu
+ID0gSm9pbi1QYXRoICROYXRpdmVCYXNlRGlyICJiaW4iCiAgJEluc3RhbGxl
+clBhdGggPSBKb2luLVBhdGggJEVuZ0NvbW1vbkJhc2VEaXIgImluc3RhbGwt
+dG9vbC5wczEiCgogICMgUHJvY2VzcyB0b29scyBsaXN0CiAgV3JpdGUtSG9z
+dCAiUHJvY2Vzc2luZyAkR2xvYmFsSnNvbkZpbGUiCiAgSWYgKC1Ob3QgKFRl
+c3QtUGF0aCAkR2xvYmFsSnNvbkZpbGUpKSB7CiAgICBXcml0ZS1Ib3N0ICJV
+bmFibGUgdG8gZmluZCAnJEdsb2JhbEpzb25GaWxlJyIKICAgIGV4aXQgMAog
+IH0KICAkTmF0aXZlVG9vbHMgPSBHZXQtQ29udGVudCgkR2xvYmFsSnNvbkZp
+bGUpIC1SYXcgfAogICAgICAgICAgICAgICAgICAgIENvbnZlcnRGcm9tLUpz
+b24gfAogICAgICAgICAgICAgICAgICAgIFNlbGVjdC1PYmplY3QgLUV4cGFu
+ZCAibmF0aXZlLXRvb2xzIiAtRXJyb3JBY3Rpb24gU2lsZW50bHlDb250aW51
+ZQogIGlmICgkTmF0aXZlVG9vbHMpIHsKICAgICROYXRpdmVUb29scy5QU09i
+amVjdC5Qcm9wZXJ0aWVzIHwgRm9yRWFjaC1PYmplY3QgewogICAgICAkVG9v
+bE5hbWUgPSAkXy5OYW1lCiAgICAgICRUb29sVmVyc2lvbiA9ICRfLlZhbHVl
+CiAgICAgICRMb2NhbEluc3RhbGxlckNvbW1hbmQgPSAkSW5zdGFsbGVyUGF0
+aAogICAgICAkTG9jYWxJbnN0YWxsZXJDb21tYW5kICs9ICIgLVRvb2xOYW1l
+ICRUb29sTmFtZSIKICAgICAgJExvY2FsSW5zdGFsbGVyQ29tbWFuZCArPSAi
+IC1JbnN0YWxsUGF0aCAkSW5zdGFsbEJpbiIKICAgICAgJExvY2FsSW5zdGFs
+bGVyQ29tbWFuZCArPSAiIC1CYXNlVXJpICRCYXNlVXJpIgogICAgICAkTG9j
+YWxJbnN0YWxsZXJDb21tYW5kICs9ICIgLUNvbW1vbkxpYnJhcnlEaXJlY3Rv
+cnkgJEVuZ0NvbW1vbkJhc2VEaXIiCiAgICAgICRMb2NhbEluc3RhbGxlckNv
+bW1hbmQgKz0gIiAtVmVyc2lvbiAkVG9vbFZlcnNpb24iCgogICAgICBpZiAo
+JFZlcmJvc2UpIHsKICAgICAgICAkTG9jYWxJbnN0YWxsZXJDb21tYW5kICs9
+ICIgLVZlcmJvc2UiCiAgICAgIH0KICAgICAgaWYgKEdldC1WYXJpYWJsZSAn
+Rm9yY2UnIC1FcnJvckFjdGlvbiAnU2lsZW50bHlDb250aW51ZScpIHsKICAg
+ICAgICBpZigkRm9yY2UpIHsKICAgICAgICAgICRMb2NhbEluc3RhbGxlckNv
+bW1hbmQgKz0gIiAtRm9yY2UiCiAgICAgICAgfQogICAgICB9CiAgICAgIGlm
+ICgkQ2xlYW4pIHsKICAgICAgICAkTG9jYWxJbnN0YWxsZXJDb21tYW5kICs9
+ICIgLUNsZWFuIgogICAgICB9CgogICAgICBXcml0ZS1WZXJib3NlICJJbnN0
+YWxsaW5nICRUb29sTmFtZSB2ZXJzaW9uICRUb29sVmVyc2lvbiIKICAgICAg
+V3JpdGUtVmVyYm9zZSAiRXhlY3V0aW5nICckTG9jYWxJbnN0YWxsZXJDb21t
+YW5kJyIKICAgICAgSW52b2tlLUV4cHJlc3Npb24gIiRMb2NhbEluc3RhbGxl
+ckNvbW1hbmQiCiAgICAgIGlmICgkTEFTVEVYSVRDT0RFIC1OZSAiMCIpIHsK
+ICAgICAgICBXcml0ZS1FcnJvciAiRXhlY3V0aW9uIGZhaWxlZCIKICAgICAg
+ICBleGl0IDEKICAgICAgfQogICAgfQogIH0KICBlbHNlIHsKICAgIFdyaXRl
+LUhvc3QgIk5vIG5hdGl2ZSB0b29scyBkZWZpbmVkIGluIGdsb2JhbC5qc29u
+IgogICAgZXhpdCAwCiAgfQoKICBpZiAoJENsZWFuKSB7CiAgICBleGl0IDAK
+ICB9CiAgaWYgKFRlc3QtUGF0aCAkSW5zdGFsbEJpbikgewogICAgV3JpdGUt
+SG9zdCAiTmF0aXZlIHRvb2xzIGFyZSBhdmFpbGFibGUgZnJvbSIgKENvbnZl
+cnQtUGF0aCAtUGF0aCAkSW5zdGFsbEJpbikKICAgIFdyaXRlLUhvc3QgIiMj
+dnNvW3Rhc2sucHJlcGVuZHBhdGhdJChDb252ZXJ0LVBhdGggLVBhdGggJElu
+c3RhbGxCaW4pIgogIH0KICBlbHNlIHsKICAgIFdyaXRlLUVycm9yICJOYXRp
+dmUgdG9vbHMgaW5zdGFsbCBkaXJlY3RvcnkgZG9lcyBub3QgZXhpc3QsIGlu
+c3RhbGxhdGlvbiBmYWlsZWQiCiAgICBleGl0IDEKICB9CiAgZXhpdCAwCn0K
+Y2F0Y2ggewogIFdyaXRlLUhvc3QgJF8KICBXcml0ZS1Ib3N0ICRfLkV4Y2Vw
+dGlvbgogIGV4aXQgMQp9Cg==

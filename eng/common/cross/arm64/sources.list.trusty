@@ -1,11 +1,15 @@
-deb http://ports.ubuntu.com/ubuntu-ports/ trusty main restricted universe
-deb-src http://ports.ubuntu.com/ubuntu-ports/ trusty main restricted universe
-
-deb http://ports.ubuntu.com/ubuntu-ports/ trusty-updates main restricted universe
-deb-src http://ports.ubuntu.com/ubuntu-ports/ trusty-updates main restricted universe
-
-deb http://ports.ubuntu.com/ubuntu-ports/ trusty-backports main restricted
-deb-src http://ports.ubuntu.com/ubuntu-ports/ trusty-backports main restricted
-
-deb http://ports.ubuntu.com/ubuntu-ports/ trusty-security main restricted universe multiverse
-deb-src http://ports.ubuntu.com/ubuntu-ports/ trusty-security main restricted universe multiverse
+ZGViIGh0dHA6Ly9wb3J0cy51YnVudHUuY29tL3VidW50dS1wb3J0cy8gdHJ1
+c3R5IG1haW4gcmVzdHJpY3RlZCB1bml2ZXJzZQpkZWItc3JjIGh0dHA6Ly9w
+b3J0cy51YnVudHUuY29tL3VidW50dS1wb3J0cy8gdHJ1c3R5IG1haW4gcmVz
+dHJpY3RlZCB1bml2ZXJzZQoKZGViIGh0dHA6Ly9wb3J0cy51YnVudHUuY29t
+L3VidW50dS1wb3J0cy8gdHJ1c3R5LXVwZGF0ZXMgbWFpbiByZXN0cmljdGVk
+IHVuaXZlcnNlCmRlYi1zcmMgaHR0cDovL3BvcnRzLnVidW50dS5jb20vdWJ1
+bnR1LXBvcnRzLyB0cnVzdHktdXBkYXRlcyBtYWluIHJlc3RyaWN0ZWQgdW5p
+dmVyc2UKCmRlYiBodHRwOi8vcG9ydHMudWJ1bnR1LmNvbS91YnVudHUtcG9y
+dHMvIHRydXN0eS1iYWNrcG9ydHMgbWFpbiByZXN0cmljdGVkCmRlYi1zcmMg
+aHR0cDovL3BvcnRzLnVidW50dS5jb20vdWJ1bnR1LXBvcnRzLyB0cnVzdHkt
+YmFja3BvcnRzIG1haW4gcmVzdHJpY3RlZAoKZGViIGh0dHA6Ly9wb3J0cy51
+YnVudHUuY29tL3VidW50dS1wb3J0cy8gdHJ1c3R5LXNlY3VyaXR5IG1haW4g
+cmVzdHJpY3RlZCB1bml2ZXJzZSBtdWx0aXZlcnNlCmRlYi1zcmMgaHR0cDov
+L3BvcnRzLnVidW50dS5jb20vdWJ1bnR1LXBvcnRzLyB0cnVzdHktc2VjdXJp
+dHkgbWFpbiByZXN0cmljdGVkIHVuaXZlcnNlIG11bHRpdmVyc2U=

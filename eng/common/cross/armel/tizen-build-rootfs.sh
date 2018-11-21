@@ -1,44 +1,26 @@
-#!/usr/bin/env bash
-set -e
-
-__ARM_SOFTFP_CrossDir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-__TIZEN_CROSSDIR="$__ARM_SOFTFP_CrossDir/tizen"
-
-if [[ -z "$ROOTFS_DIR" ]]; then
-    echo "ROOTFS_DIR is not defined."
-    exit 1;
-fi
-
-# Clean-up (TODO-Cleanup: We may already delete  $ROOTFS_DIR at ./cross/build-rootfs.sh.)
-# hk0110
-if [ -d "$ROOTFS_DIR" ]; then
-    umount $ROOTFS_DIR/*
-    rm -rf $ROOTFS_DIR
-fi
-
-TIZEN_TMP_DIR=$ROOTFS_DIR/tizen_tmp
-mkdir -p $TIZEN_TMP_DIR
-
-# Download files
-echo ">>Start downloading files"
-VERBOSE=1 $__ARM_SOFTFP_CrossDir/tizen-fetch.sh $TIZEN_TMP_DIR
-echo "<<Finish downloading files"
-
-echo ">>Start constructing Tizen rootfs"
-TIZEN_RPM_FILES=`ls $TIZEN_TMP_DIR/*.rpm`
-cd $ROOTFS_DIR
-for f in $TIZEN_RPM_FILES; do
-    rpm2cpio $f  | cpio -idm --quiet
-done
-echo "<<Finish constructing Tizen rootfs"
-
-# Cleanup tmp
-rm -rf $TIZEN_TMP_DIR
-
-# Configure Tizen rootfs
-echo ">>Start configuring Tizen rootfs"
-rm ./usr/lib/libunwind.so
-ln -s libunwind.so.8 ./usr/lib/libunwind.so
-ln -sfn asm-arm ./usr/include/asm
-patch -p1 < $__TIZEN_CROSSDIR/tizen.patch
-echo "<<Finish configuring Tizen rootfs"
+IyEvdXNyL2Jpbi9lbnYgYmFzaApzZXQgLWUKCl9fQVJNX1NPRlRGUF9Dcm9z
+c0Rpcj0kKCBjZCAiJCggZGlybmFtZSAiJHtCQVNIX1NPVVJDRVswXX0iICki
+ICYmIHB3ZCApCl9fVElaRU5fQ1JPU1NESVI9IiRfX0FSTV9TT0ZURlBfQ3Jv
+c3NEaXIvdGl6ZW4iCgppZiBbWyAteiAiJFJPT1RGU19ESVIiIF1dOyB0aGVu
+CiAgICBlY2hvICJST09URlNfRElSIGlzIG5vdCBkZWZpbmVkLiIKICAgIGV4
+aXQgMTsKZmkKCiMgQ2xlYW4tdXAgKFRPRE8tQ2xlYW51cDogV2UgbWF5IGFs
+cmVhZHkgZGVsZXRlICAkUk9PVEZTX0RJUiBhdCAuL2Nyb3NzL2J1aWxkLXJv
+b3Rmcy5zaC4pCiMgaGswMTEwCmlmIFsgLWQgIiRST09URlNfRElSIiBdOyB0
+aGVuCiAgICB1bW91bnQgJFJPT1RGU19ESVIvKgogICAgcm0gLXJmICRST09U
+RlNfRElSCmZpCgpUSVpFTl9UTVBfRElSPSRST09URlNfRElSL3RpemVuX3Rt
+cApta2RpciAtcCAkVElaRU5fVE1QX0RJUgoKIyBEb3dubG9hZCBmaWxlcwpl
+Y2hvICI+PlN0YXJ0IGRvd25sb2FkaW5nIGZpbGVzIgpWRVJCT1NFPTEgJF9f
+QVJNX1NPRlRGUF9Dcm9zc0Rpci90aXplbi1mZXRjaC5zaCAkVElaRU5fVE1Q
+X0RJUgplY2hvICI8PEZpbmlzaCBkb3dubG9hZGluZyBmaWxlcyIKCmVjaG8g
+Ij4+U3RhcnQgY29uc3RydWN0aW5nIFRpemVuIHJvb3RmcyIKVElaRU5fUlBN
+X0ZJTEVTPWBscyAkVElaRU5fVE1QX0RJUi8qLnJwbWAKY2QgJFJPT1RGU19E
+SVIKZm9yIGYgaW4gJFRJWkVOX1JQTV9GSUxFUzsgZG8KICAgIHJwbTJjcGlv
+ICRmICB8IGNwaW8gLWlkbSAtLXF1aWV0CmRvbmUKZWNobyAiPDxGaW5pc2gg
+Y29uc3RydWN0aW5nIFRpemVuIHJvb3RmcyIKCiMgQ2xlYW51cCB0bXAKcm0g
+LXJmICRUSVpFTl9UTVBfRElSCgojIENvbmZpZ3VyZSBUaXplbiByb290ZnMK
+ZWNobyAiPj5TdGFydCBjb25maWd1cmluZyBUaXplbiByb290ZnMiCnJtIC4v
+dXNyL2xpYi9saWJ1bndpbmQuc28KbG4gLXMgbGlidW53aW5kLnNvLjggLi91
+c3IvbGliL2xpYnVud2luZC5zbwpsbiAtc2ZuIGFzbS1hcm0gLi91c3IvaW5j
+bHVkZS9hc20KcGF0Y2ggLXAxIDwgJF9fVElaRU5fQ1JPU1NESVIvdGl6ZW4u
+cGF0Y2gKZWNobyAiPDxGaW5pc2ggY29uZmlndXJpbmcgVGl6ZW4gcm9vdGZz
+Igo=

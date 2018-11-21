@@ -1,130 +1,110 @@
-parameters:
-  # Optional: Clean sources before building
-  clean: true
-
-  # Optional: Git fetch depth
-  fetchDepth: ''
-
-  # Optional: name of the phase (not specifying phase name may cause name collisions)
-  name: ''
-  # Optional: display name of the phase
-  displayName: ''
-
-  # Optional: condition for the job to run
-  condition: ''
-
-  # Optional: dependencies of the phase
-  dependsOn: ''
-
-  # Required: A defined YAML queue
-  queue: {}
-
-  # Required: build steps
-  steps: []
-
-  # Optional: variables
-  variables: {}
-
-  # Optional: should run as a public build even in the internal project
-  #           if 'true', the build won't run any of the internal only steps, even if it is running in non-public projects.
-  runAsPublic: false
-
-  ## Telemetry variables
-
-  # Optional: enable sending telemetry
-  #           if 'true', these "variables" must be specified in the variables object or as part of the queue matrix
-  #             _HelixBuildConfig - differentiate between Debug, Release, other
-  #             _HelixSource - Example: build/product
-  #             _HelixType - Example: official/dotnet/arcade/$(Build.SourceBranch)
-  enableTelemetry: false
-
-  # Optional: Enable installing Microbuild plugin
-  #           if 'true', these "variables" must be specified in the variables object or as part of the queue matrix
-  #             _TeamName - the name of your team
-  #             _SignType - 'test' or 'real'
-  enableMicrobuild: false
-
-# Internal resources (telemetry, microbuild) can only be accessed from non-public projects,
-# and some (Microbuild) should only be applied to non-PR cases for internal builds.
-
-phases:
-- phase: ${{ parameters.name }}
-
-  ${{ if ne(parameters.displayName, '') }}:
-    displayName: ${{ parameters.displayName }}
-
-  ${{ if ne(parameters.condition, '') }}:
-    condition: ${{ parameters.condition }}
-
-  ${{ if ne(parameters.dependsOn, '') }}:
-    dependsOn: ${{ parameters.dependsOn }}
-
-  queue: ${{ parameters.queue }}
-
-  ${{ if ne(parameters.variables, '') }}:
-    variables:
-      ${{ insert }}: ${{ parameters.variables }}
-
-  steps:
-  - checkout: self
-    clean: ${{ parameters.clean }}
-    ${{ if ne(parameters.fetchDepth, '') }}:
-      fetchDepth: ${{ parameters.fetchDepth }}
-
-  - ${{ if eq(parameters.enableTelemetry, 'true') }}:
-    - template: /eng/common/templates/steps/telemetry-start.yml
-      parameters:
-        buildConfig: $(_HelixBuildConfig)
-        helixSource: $(_HelixSource)
-        helixType: $(_HelixType)
-        runAsPublic: ${{ parameters.runAsPublic }}
-
-  - ${{ if eq(parameters.enableMicrobuild, 'true') }}:
-    # Internal only resource, and Microbuild signing shouldn't be applied to PRs.
-    - ${{ if and(eq(parameters.runAsPublic, 'false'), ne(variables['System.TeamProject'], 'public'), notin(variables['Build.Reason'], 'PullRequest')) }}:
-      - task: MicroBuildSigningPlugin@2
-        displayName: Install MicroBuild plugin
-        inputs:
-          signType: $(_SignType)
-          zipSources: false
-          feedSource: https://dnceng.pkgs.visualstudio.com/_packaging/MicroBuildToolset/nuget/v3/index.json
-          
-        env:
-          TeamName: $(_TeamName)
-        continueOnError: false
-        condition: and(succeeded(), in(variables['_SignType'], 'real', 'test'), eq(variables['Agent.Os'], 'Windows_NT'))
-
-  # Run provided build steps
-  - ${{ parameters.steps }}
-
-  - ${{ if eq(parameters.enableMicrobuild, 'true') }}:
-    # Internal only resources
-    - ${{ if and(eq(parameters.runAsPublic, 'false'), ne(variables['System.TeamProject'], 'public'), notin(variables['Build.Reason'], 'PullRequest')) }}:
-      - task: MicroBuildCleanup@1
-        displayName: Execute Microbuild cleanup tasks  
-        condition: and(always(), in(variables['_SignType'], 'real', 'test'), eq(variables['Agent.Os'], 'Windows_NT'))
-        env:
-          TeamName: $(_TeamName)
-
-  - ${{ if eq(parameters.enableTelemetry, 'true') }}:
-    - template: /eng/common/templates/steps/telemetry-end.yml
-      parameters:
-        helixSource: $(_HelixSource)
-        helixType: $(_HelixType)
-
-  - ${{ if and(eq(parameters.runAsPublic, 'false'), ne(variables['System.TeamProject'], 'public'), notin(variables['Build.Reason'], 'PullRequest')) }}:
-    - task: CopyFiles@2
-      displayName: Gather Asset Manifests
-      inputs:
-        SourceFolder: '$(Build.SourcesDirectory)/artifacts/log/$(_BuildConfig)/AssetManifest'
-        TargetFolder: '$(Build.StagingDirectory)/AssetManifests'
-      continueOnError: false
-      condition: and(succeeded(), eq(variables['_DotNetPublishToBlobFeed'], 'true'))
-    - task: PublishBuildArtifacts@1
-      displayName: Push Asset Manifests
-      inputs:
-        PathtoPublish: '$(Build.StagingDirectory)/AssetManifests'
-        PublishLocation: Container
-        ArtifactName: AssetManifests
-      continueOnError: false
-      condition: and(succeeded(), eq(variables['_DotNetPublishToBlobFeed'], 'true'))
+cGFyYW1ldGVyczoKICAjIE9wdGlvbmFsOiBDbGVhbiBzb3VyY2VzIGJlZm9y
+ZSBidWlsZGluZwogIGNsZWFuOiB0cnVlCgogICMgT3B0aW9uYWw6IEdpdCBm
+ZXRjaCBkZXB0aAogIGZldGNoRGVwdGg6ICcnCgogICMgT3B0aW9uYWw6IG5h
+bWUgb2YgdGhlIHBoYXNlIChub3Qgc3BlY2lmeWluZyBwaGFzZSBuYW1lIG1h
+eSBjYXVzZSBuYW1lIGNvbGxpc2lvbnMpCiAgbmFtZTogJycKICAjIE9wdGlv
+bmFsOiBkaXNwbGF5IG5hbWUgb2YgdGhlIHBoYXNlCiAgZGlzcGxheU5hbWU6
+ICcnCgogICMgT3B0aW9uYWw6IGNvbmRpdGlvbiBmb3IgdGhlIGpvYiB0byBy
+dW4KICBjb25kaXRpb246ICcnCgogICMgT3B0aW9uYWw6IGRlcGVuZGVuY2ll
+cyBvZiB0aGUgcGhhc2UKICBkZXBlbmRzT246ICcnCgogICMgUmVxdWlyZWQ6
+IEEgZGVmaW5lZCBZQU1MIHF1ZXVlCiAgcXVldWU6IHt9CgogICMgUmVxdWly
+ZWQ6IGJ1aWxkIHN0ZXBzCiAgc3RlcHM6IFtdCgogICMgT3B0aW9uYWw6IHZh
+cmlhYmxlcwogIHZhcmlhYmxlczoge30KCiAgIyBPcHRpb25hbDogc2hvdWxk
+IHJ1biBhcyBhIHB1YmxpYyBidWlsZCBldmVuIGluIHRoZSBpbnRlcm5hbCBw
+cm9qZWN0CiAgIyAgICAgICAgICAgaWYgJ3RydWUnLCB0aGUgYnVpbGQgd29u
+J3QgcnVuIGFueSBvZiB0aGUgaW50ZXJuYWwgb25seSBzdGVwcywgZXZlbiBp
+ZiBpdCBpcyBydW5uaW5nIGluIG5vbi1wdWJsaWMgcHJvamVjdHMuCiAgcnVu
+QXNQdWJsaWM6IGZhbHNlCgogICMjIFRlbGVtZXRyeSB2YXJpYWJsZXMKCiAg
+IyBPcHRpb25hbDogZW5hYmxlIHNlbmRpbmcgdGVsZW1ldHJ5CiAgIyAgICAg
+ICAgICAgaWYgJ3RydWUnLCB0aGVzZSAidmFyaWFibGVzIiBtdXN0IGJlIHNw
+ZWNpZmllZCBpbiB0aGUgdmFyaWFibGVzIG9iamVjdCBvciBhcyBwYXJ0IG9m
+IHRoZSBxdWV1ZSBtYXRyaXgKICAjICAgICAgICAgICAgIF9IZWxpeEJ1aWxk
+Q29uZmlnIC0gZGlmZmVyZW50aWF0ZSBiZXR3ZWVuIERlYnVnLCBSZWxlYXNl
+LCBvdGhlcgogICMgICAgICAgICAgICAgX0hlbGl4U291cmNlIC0gRXhhbXBs
+ZTogYnVpbGQvcHJvZHVjdAogICMgICAgICAgICAgICAgX0hlbGl4VHlwZSAt
+IEV4YW1wbGU6IG9mZmljaWFsL2RvdG5ldC9hcmNhZGUvJChCdWlsZC5Tb3Vy
+Y2VCcmFuY2gpCiAgZW5hYmxlVGVsZW1ldHJ5OiBmYWxzZQoKICAjIE9wdGlv
+bmFsOiBFbmFibGUgaW5zdGFsbGluZyBNaWNyb2J1aWxkIHBsdWdpbgogICMg
+ICAgICAgICAgIGlmICd0cnVlJywgdGhlc2UgInZhcmlhYmxlcyIgbXVzdCBi
+ZSBzcGVjaWZpZWQgaW4gdGhlIHZhcmlhYmxlcyBvYmplY3Qgb3IgYXMgcGFy
+dCBvZiB0aGUgcXVldWUgbWF0cml4CiAgIyAgICAgICAgICAgICBfVGVhbU5h
+bWUgLSB0aGUgbmFtZSBvZiB5b3VyIHRlYW0KICAjICAgICAgICAgICAgIF9T
+aWduVHlwZSAtICd0ZXN0JyBvciAncmVhbCcKICBlbmFibGVNaWNyb2J1aWxk
+OiBmYWxzZQoKIyBJbnRlcm5hbCByZXNvdXJjZXMgKHRlbGVtZXRyeSwgbWlj
+cm9idWlsZCkgY2FuIG9ubHkgYmUgYWNjZXNzZWQgZnJvbSBub24tcHVibGlj
+IHByb2plY3RzLAojIGFuZCBzb21lIChNaWNyb2J1aWxkKSBzaG91bGQgb25s
+eSBiZSBhcHBsaWVkIHRvIG5vbi1QUiBjYXNlcyBmb3IgaW50ZXJuYWwgYnVp
+bGRzLgoKcGhhc2VzOgotIHBoYXNlOiAke3sgcGFyYW1ldGVycy5uYW1lIH19
+CgogICR7eyBpZiBuZShwYXJhbWV0ZXJzLmRpc3BsYXlOYW1lLCAnJykgfX06
+CiAgICBkaXNwbGF5TmFtZTogJHt7IHBhcmFtZXRlcnMuZGlzcGxheU5hbWUg
+fX0KCiAgJHt7IGlmIG5lKHBhcmFtZXRlcnMuY29uZGl0aW9uLCAnJykgfX06
+CiAgICBjb25kaXRpb246ICR7eyBwYXJhbWV0ZXJzLmNvbmRpdGlvbiB9fQoK
+ICAke3sgaWYgbmUocGFyYW1ldGVycy5kZXBlbmRzT24sICcnKSB9fToKICAg
+IGRlcGVuZHNPbjogJHt7IHBhcmFtZXRlcnMuZGVwZW5kc09uIH19CgogIHF1
+ZXVlOiAke3sgcGFyYW1ldGVycy5xdWV1ZSB9fQoKICAke3sgaWYgbmUocGFy
+YW1ldGVycy52YXJpYWJsZXMsICcnKSB9fToKICAgIHZhcmlhYmxlczoKICAg
+ICAgJHt7IGluc2VydCB9fTogJHt7IHBhcmFtZXRlcnMudmFyaWFibGVzIH19
+CgogIHN0ZXBzOgogIC0gY2hlY2tvdXQ6IHNlbGYKICAgIGNsZWFuOiAke3sg
+cGFyYW1ldGVycy5jbGVhbiB9fQogICAgJHt7IGlmIG5lKHBhcmFtZXRlcnMu
+ZmV0Y2hEZXB0aCwgJycpIH19OgogICAgICBmZXRjaERlcHRoOiAke3sgcGFy
+YW1ldGVycy5mZXRjaERlcHRoIH19CgogIC0gJHt7IGlmIGVxKHBhcmFtZXRl
+cnMuZW5hYmxlVGVsZW1ldHJ5LCAndHJ1ZScpIH19OgogICAgLSB0ZW1wbGF0
+ZTogL2VuZy9jb21tb24vdGVtcGxhdGVzL3N0ZXBzL3RlbGVtZXRyeS1zdGFy
+dC55bWwKICAgICAgcGFyYW1ldGVyczoKICAgICAgICBidWlsZENvbmZpZzog
+JChfSGVsaXhCdWlsZENvbmZpZykKICAgICAgICBoZWxpeFNvdXJjZTogJChf
+SGVsaXhTb3VyY2UpCiAgICAgICAgaGVsaXhUeXBlOiAkKF9IZWxpeFR5cGUp
+CiAgICAgICAgcnVuQXNQdWJsaWM6ICR7eyBwYXJhbWV0ZXJzLnJ1bkFzUHVi
+bGljIH19CgogIC0gJHt7IGlmIGVxKHBhcmFtZXRlcnMuZW5hYmxlTWljcm9i
+dWlsZCwgJ3RydWUnKSB9fToKICAgICMgSW50ZXJuYWwgb25seSByZXNvdXJj
+ZSwgYW5kIE1pY3JvYnVpbGQgc2lnbmluZyBzaG91bGRuJ3QgYmUgYXBwbGll
+ZCB0byBQUnMuCiAgICAtICR7eyBpZiBhbmQoZXEocGFyYW1ldGVycy5ydW5B
+c1B1YmxpYywgJ2ZhbHNlJyksIG5lKHZhcmlhYmxlc1snU3lzdGVtLlRlYW1Q
+cm9qZWN0J10sICdwdWJsaWMnKSwgbm90aW4odmFyaWFibGVzWydCdWlsZC5S
+ZWFzb24nXSwgJ1B1bGxSZXF1ZXN0JykpIH19OgogICAgICAtIHRhc2s6IE1p
+Y3JvQnVpbGRTaWduaW5nUGx1Z2luQDIKICAgICAgICBkaXNwbGF5TmFtZTog
+SW5zdGFsbCBNaWNyb0J1aWxkIHBsdWdpbgogICAgICAgIGlucHV0czoKICAg
+ICAgICAgIHZlcnNpb246IDEuMS4zNQogICAgICAgICAgc2lnblR5cGU6ICQo
+X1NpZ25UeXBlKQogICAgICAgICAgemlwU291cmNlczogZmFsc2UKICAgICAg
+ICAgIGZlZWRTb3VyY2U6IGh0dHBzOi8vZG5jZW5nLnBrZ3MudmlzdWFsc3R1
+ZGlvLmNvbS9fcGFja2FnaW5nL01pY3JvQnVpbGRUb29sc2V0L251Z2V0L3Yz
+L2luZGV4Lmpzb24KICAgICAgICAgIAogICAgICAgIGVudjoKICAgICAgICAg
+IFRlYW1OYW1lOiAkKF9UZWFtTmFtZSkKICAgICAgICBjb250aW51ZU9uRXJy
+b3I6IGZhbHNlCiAgICAgICAgY29uZGl0aW9uOiBhbmQoc3VjY2VlZGVkKCks
+IGluKHZhcmlhYmxlc1snX1NpZ25UeXBlJ10sICdyZWFsJywgJ3Rlc3QnKSwg
+ZXEodmFyaWFibGVzWydBZ2VudC5PcyddLCAnV2luZG93c19OVCcpKQoKICAj
+IFJ1biBwcm92aWRlZCBidWlsZCBzdGVwcwogIC0gJHt7IHBhcmFtZXRlcnMu
+c3RlcHMgfX0KCiAgLSAke3sgaWYgZXEocGFyYW1ldGVycy5lbmFibGVNaWNy
+b2J1aWxkLCAndHJ1ZScpIH19OgogICAgIyBJbnRlcm5hbCBvbmx5IHJlc291
+cmNlcwogICAgLSAke3sgaWYgYW5kKGVxKHBhcmFtZXRlcnMucnVuQXNQdWJs
+aWMsICdmYWxzZScpLCBuZSh2YXJpYWJsZXNbJ1N5c3RlbS5UZWFtUHJvamVj
+dCddLCAncHVibGljJyksIG5vdGluKHZhcmlhYmxlc1snQnVpbGQuUmVhc29u
+J10sICdQdWxsUmVxdWVzdCcpKSB9fToKICAgICAgLSB0YXNrOiBNaWNyb0J1
+aWxkQ2xlYW51cEAxCiAgICAgICAgZGlzcGxheU5hbWU6IEV4ZWN1dGUgTWlj
+cm9idWlsZCBjbGVhbnVwIHRhc2tzICAKICAgICAgICBjb25kaXRpb246IGFu
+ZChhbHdheXMoKSwgaW4odmFyaWFibGVzWydfU2lnblR5cGUnXSwgJ3JlYWwn
+LCAndGVzdCcpLCBlcSh2YXJpYWJsZXNbJ0FnZW50Lk9zJ10sICdXaW5kb3dz
+X05UJykpCiAgICAgICAgZW52OgogICAgICAgICAgVGVhbU5hbWU6ICQoX1Rl
+YW1OYW1lKQoKICAtICR7eyBpZiBlcShwYXJhbWV0ZXJzLmVuYWJsZVRlbGVt
+ZXRyeSwgJ3RydWUnKSB9fToKICAgIC0gdGVtcGxhdGU6IC9lbmcvY29tbW9u
+L3RlbXBsYXRlcy9zdGVwcy90ZWxlbWV0cnktZW5kLnltbAogICAgICBwYXJh
+bWV0ZXJzOgogICAgICAgIGhlbGl4U291cmNlOiAkKF9IZWxpeFNvdXJjZSkK
+ICAgICAgICBoZWxpeFR5cGU6ICQoX0hlbGl4VHlwZSkKCiAgLSAke3sgaWYg
+YW5kKGVxKHBhcmFtZXRlcnMucnVuQXNQdWJsaWMsICdmYWxzZScpLCBuZSh2
+YXJpYWJsZXNbJ1N5c3RlbS5UZWFtUHJvamVjdCddLCAncHVibGljJyksIG5v
+dGluKHZhcmlhYmxlc1snQnVpbGQuUmVhc29uJ10sICdQdWxsUmVxdWVzdCcp
+KSB9fToKICAgIC0gdGFzazogQ29weUZpbGVzQDIKICAgICAgZGlzcGxheU5h
+bWU6IEdhdGhlciBBc3NldCBNYW5pZmVzdHMKICAgICAgaW5wdXRzOgogICAg
+ICAgIFNvdXJjZUZvbGRlcjogJyQoQnVpbGQuU291cmNlc0RpcmVjdG9yeSkv
+YXJ0aWZhY3RzL2xvZy8kKF9CdWlsZENvbmZpZykvQXNzZXRNYW5pZmVzdCcK
+ICAgICAgICBUYXJnZXRGb2xkZXI6ICckKEJ1aWxkLlN0YWdpbmdEaXJlY3Rv
+cnkpL0Fzc2V0TWFuaWZlc3RzJwogICAgICBjb250aW51ZU9uRXJyb3I6IGZh
+bHNlCiAgICAgIGNvbmRpdGlvbjogYW5kKHN1Y2NlZWRlZCgpLCBlcSh2YXJp
+YWJsZXNbJ19Eb3ROZXRQdWJsaXNoVG9CbG9iRmVlZCddLCAndHJ1ZScpKQog
+ICAgLSB0YXNrOiBQdWJsaXNoQnVpbGRBcnRpZmFjdHNAMQogICAgICBkaXNw
+bGF5TmFtZTogUHVzaCBBc3NldCBNYW5pZmVzdHMKICAgICAgaW5wdXRzOgog
+ICAgICAgIFBhdGh0b1B1Ymxpc2g6ICckKEJ1aWxkLlN0YWdpbmdEaXJlY3Rv
+cnkpL0Fzc2V0TWFuaWZlc3RzJwogICAgICAgIFB1Ymxpc2hMb2NhdGlvbjog
+Q29udGFpbmVyCiAgICAgICAgQXJ0aWZhY3ROYW1lOiBBc3NldE1hbmlmZXN0
+cwogICAgICBjb250aW51ZU9uRXJyb3I6IGZhbHNlCiAgICAgIGNvbmRpdGlv
+bjogYW5kKHN1Y2NlZWRlZCgpLCBlcSh2YXJpYWJsZXNbJ19Eb3ROZXRQdWJs
+aXNoVG9CbG9iRmVlZCddLCAndHJ1ZScpKQo=

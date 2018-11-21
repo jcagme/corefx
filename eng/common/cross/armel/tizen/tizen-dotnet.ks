@@ -1,50 +1,19 @@
-lang en_US.UTF-8
-keyboard us
-timezone --utc Asia/Seoul
-
-part / --fstype="ext4" --size=3500 --ondisk=mmcblk0 --label rootfs --fsoptions=defaults,noatime
-
-rootpw tizen
-desktop --autologinuser=root
-user --name root  --groups audio,video --password 'tizen'
-
-repo --name=standard  --baseurl=http://download.tizen.org/releases/milestone/tizen/unified/latest/repos/standard/packages/ --ssl_verify=no
-repo --name=base      --baseurl=http://download.tizen.org/releases/milestone/tizen/base/latest/repos/standard/packages/ --ssl_verify=no
-
-%packages
-tar
-gzip
-
-sed
-grep
-gawk
-perl
-
-binutils
-findutils
-util-linux
-lttng-ust
-userspace-rcu
-procps-ng
-tzdata
-ca-certificates
-
-
-### Core FX
-libicu
-libunwind
-iputils
-zlib
-krb5
-libcurl
-libopenssl
-
-%end
-
-%post
-
-### Update /tmp privilege
-chmod 777 /tmp
-####################################
-
-%end
+bGFuZyBlbl9VUy5VVEYtOAprZXlib2FyZCB1cwp0aW1lem9uZSAtLXV0YyBB
+c2lhL1Nlb3VsCgpwYXJ0IC8gLS1mc3R5cGU9ImV4dDQiIC0tc2l6ZT0zNTAw
+IC0tb25kaXNrPW1tY2JsazAgLS1sYWJlbCByb290ZnMgLS1mc29wdGlvbnM9
+ZGVmYXVsdHMsbm9hdGltZQoKcm9vdHB3IHRpemVuCmRlc2t0b3AgLS1hdXRv
+bG9naW51c2VyPXJvb3QKdXNlciAtLW5hbWUgcm9vdCAgLS1ncm91cHMgYXVk
+aW8sdmlkZW8gLS1wYXNzd29yZCAndGl6ZW4nCgpyZXBvIC0tbmFtZT1zdGFu
+ZGFyZCAgLS1iYXNldXJsPWh0dHA6Ly9kb3dubG9hZC50aXplbi5vcmcvcmVs
+ZWFzZXMvbWlsZXN0b25lL3RpemVuL3VuaWZpZWQvbGF0ZXN0L3JlcG9zL3N0
+YW5kYXJkL3BhY2thZ2VzLyAtLXNzbF92ZXJpZnk9bm8KcmVwbyAtLW5hbWU9
+YmFzZSAgICAgIC0tYmFzZXVybD1odHRwOi8vZG93bmxvYWQudGl6ZW4ub3Jn
+L3JlbGVhc2VzL21pbGVzdG9uZS90aXplbi9iYXNlL2xhdGVzdC9yZXBvcy9z
+dGFuZGFyZC9wYWNrYWdlcy8gLS1zc2xfdmVyaWZ5PW5vCgolcGFja2FnZXMK
+dGFyCmd6aXAKCnNlZApncmVwCmdhd2sKcGVybAoKYmludXRpbHMKZmluZHV0
+aWxzCnV0aWwtbGludXgKbHR0bmctdXN0CnVzZXJzcGFjZS1yY3UKcHJvY3Bz
+LW5nCnR6ZGF0YQpjYS1jZXJ0aWZpY2F0ZXMKCgojIyMgQ29yZSBGWApsaWJp
+Y3UKbGlidW53aW5kCmlwdXRpbHMKemxpYgprcmI1CmxpYmN1cmwKbGlib3Bl
+bnNzbAoKJWVuZAoKJXBvc3QKCiMjIyBVcGRhdGUgL3RtcCBwcml2aWxlZ2UK
+Y2htb2QgNzc3IC90bXAKIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj
+IyMjIyMjCgolZW5kCg==

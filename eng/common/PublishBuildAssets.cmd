@@ -1,3 +1,5 @@
-@echo off
-powershell -ExecutionPolicy ByPass -NoProfile -command "& """%~dp0Build.ps1""" -restore -publishBuildAssets %*"
-exit /b %ErrorLevel%
+QGVjaG8gb2ZmCnBvd2Vyc2hlbGwgLUV4ZWN1dGlvblBvbGljeSBCeVBhc3Mg
+LU5vUHJvZmlsZSAtY29tbWFuZCAiJiAiIiIlfmRwMEJ1aWxkLnBzMSIiIiAt
+bXNidWlsZEVuZ2luZSBkb3RuZXQgLXJlc3RvcmUgLWV4ZWN1dGUgL3A6UHVi
+bGlzaEJ1aWxkQXNzZXRzPXRydWUgL3A6U2RrVGFza1Byb2plY3RzPVB1Ymxp
+c2hCdWlsZEFzc2V0cy5wcm9qICUqIgpleGl0IC9iICVFcnJvckxldmVsJQo=

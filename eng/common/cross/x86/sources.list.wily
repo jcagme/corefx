@@ -1,11 +1,14 @@
-deb http://archive.ubuntu.com/ubuntu/ wily main restricted universe
-deb-src http://archive.ubuntu.com/ubuntu/ wily main restricted universe
-
-deb http://archive.ubuntu.com/ubuntu/ wily-updates main restricted universe
-deb-src http://archive.ubuntu.com/ubuntu/ wily-updates main restricted universe
-
-deb http://archive.ubuntu.com/ubuntu/ wily-backports main restricted
-deb-src http://archive.ubuntu.com/ubuntu/ wily-backports main restricted
-
-deb http://archive.ubuntu.com/ubuntu/ wily-security main restricted universe multiverse
-deb-src http://archive.ubuntu.com/ubuntu/ wily-security main restricted universe multiverse
+ZGViIGh0dHA6Ly9hcmNoaXZlLnVidW50dS5jb20vdWJ1bnR1LyB3aWx5IG1h
+aW4gcmVzdHJpY3RlZCB1bml2ZXJzZQpkZWItc3JjIGh0dHA6Ly9hcmNoaXZl
+LnVidW50dS5jb20vdWJ1bnR1LyB3aWx5IG1haW4gcmVzdHJpY3RlZCB1bml2
+ZXJzZQoKZGViIGh0dHA6Ly9hcmNoaXZlLnVidW50dS5jb20vdWJ1bnR1LyB3
+aWx5LXVwZGF0ZXMgbWFpbiByZXN0cmljdGVkIHVuaXZlcnNlCmRlYi1zcmMg
+aHR0cDovL2FyY2hpdmUudWJ1bnR1LmNvbS91YnVudHUvIHdpbHktdXBkYXRl
+cyBtYWluIHJlc3RyaWN0ZWQgdW5pdmVyc2UKCmRlYiBodHRwOi8vYXJjaGl2
+ZS51YnVudHUuY29tL3VidW50dS8gd2lseS1iYWNrcG9ydHMgbWFpbiByZXN0
+cmljdGVkCmRlYi1zcmMgaHR0cDovL2FyY2hpdmUudWJ1bnR1LmNvbS91YnVu
+dHUvIHdpbHktYmFja3BvcnRzIG1haW4gcmVzdHJpY3RlZAoKZGViIGh0dHA6
+Ly9hcmNoaXZlLnVidW50dS5jb20vdWJ1bnR1LyB3aWx5LXNlY3VyaXR5IG1h
+aW4gcmVzdHJpY3RlZCB1bml2ZXJzZSBtdWx0aXZlcnNlCmRlYi1zcmMgaHR0
+cDovL2FyY2hpdmUudWJ1bnR1LmNvbS91YnVudHUvIHdpbHktc2VjdXJpdHkg
+bWFpbiByZXN0cmljdGVkIHVuaXZlcnNlIG11bHRpdmVyc2UK

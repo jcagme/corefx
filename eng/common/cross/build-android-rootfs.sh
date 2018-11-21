@@ -1,137 +1,166 @@
-#!/usr/bin/env bash
-set -e
-__NDK_Version=r14
-
-usage()
-{
-    echo "Creates a toolchain and sysroot used for cross-compiling for Android."
-    echo.
-    echo "Usage: $0 [BuildArch] [ApiLevel]"
-    echo.
-    echo "BuildArch is the target architecture of Android. Currently only arm64 is supported."
-    echo "ApiLevel is the target Android API level. API levels usually match to Android releases. See https://source.android.com/source/build-numbers.html"
-    echo.
-    echo "By default, the toolchain and sysroot will be generated in cross/android-rootfs/toolchain/[BuildArch]. You can change this behavior"
-    echo "by setting the TOOLCHAIN_DIR environment variable"
-    echo.
-    echo "By default, the NDK will be downloaded into the cross/android-rootfs/android-ndk-$__NDK_Version directory. If you already have an NDK installation,"
-    echo "you can set the NDK_DIR environment variable to have this script use that installation of the NDK."
-    echo "By default, this script will generate a file, android_platform, in the root of the ROOTFS_DIR directory that contains the RID for the supported and tested Android build: android.21-arm64. This file is to replace '/etc/os-release', which is not available for Android."
-    exit 1
-}
-
-__ApiLevel=21 # The minimum platform for arm64 is API level 21
-__BuildArch=arm64
-__AndroidArch=aarch64
-__AndroidToolchain=aarch64-linux-android
-
-for i in "$@"
-    do
-        lowerI="$(echo $i | awk '{print tolower($0)}')"
-        case $lowerI in
-        -?|-h|--help)
-            usage
-            exit 1
-            ;;
-        arm64)
-            __BuildArch=arm64
-            __AndroidArch=aarch64
-            __AndroidToolchain=aarch64-linux-android
-            ;;
-        arm)
-            __BuildArch=arm
-            __AndroidArch=arm
-            __AndroidToolchain=arm-linux-androideabi
-            ;;
-        *[0-9])
-            __ApiLevel=$i
-            ;;
-        *)
-            __UnprocessedBuildArgs="$__UnprocessedBuildArgs $i"
-            ;;
-    esac
-done
-
-# Obtain the location of the bash script to figure out where the root of the repo is.
-__CrossDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-__Android_Cross_Dir="$__CrossDir/android-rootfs"
-__NDK_Dir="$__Android_Cross_Dir/android-ndk-$__NDK_Version"
-__libunwind_Dir="$__Android_Cross_Dir/libunwind"
-__lldb_Dir="$__Android_Cross_Dir/lldb"
-__ToolchainDir="$__Android_Cross_Dir/toolchain/$__BuildArch"
-
-if [[ -n "$TOOLCHAIN_DIR" ]]; then
-    __ToolchainDir=$TOOLCHAIN_DIR
-fi
-
-if [[ -n "$NDK_DIR" ]]; then
-    __NDK_Dir=$NDK_DIR
-fi
-
-echo "Target API level: $__ApiLevel"
-echo "Target architecture: $__BuildArch"
-echo "NDK location: $__NDK_Dir"
-echo "Target Toolchain location: $__ToolchainDir"
-
-# Download the NDK if required
-if [ ! -d $__NDK_Dir ]; then
-    echo Downloading the NDK into $__NDK_Dir
-    mkdir -p $__NDK_Dir
-    wget -nv -nc --show-progress https://dl.google.com/android/repository/android-ndk-$__NDK_Version-linux-x86_64.zip -O $__Android_Cross_Dir/android-ndk-$__NDK_Version-linux-x86_64.zip
-    unzip -q $__Android_Cross_Dir/android-ndk-$__NDK_Version-linux-x86_64.zip -d $__Android_Cross_Dir
-fi
-
-if [ ! -d $__lldb_Dir ]; then
-    mkdir -p $__lldb_Dir
-    echo Downloading LLDB into $__lldb_Dir
-    wget -nv -nc --show-progress https://dl.google.com/android/repository/lldb-2.3.3614996-linux-x86_64.zip -O $__Android_Cross_Dir/lldb-2.3.3614996-linux-x86_64.zip
-    unzip -q $__Android_Cross_Dir/lldb-2.3.3614996-linux-x86_64.zip -d $__lldb_Dir
-fi
-
-# Create the RootFS for both arm64 as well as aarch
-rm -rf $__Android_Cross_Dir/toolchain
-
-echo Generating the $__BuildArch toolchain
-$__NDK_Dir/build/tools/make_standalone_toolchain.py --arch $__BuildArch --api $__ApiLevel --install-dir $__ToolchainDir
-
-# Install the required packages into the toolchain
-# TODO: Add logic to get latest pkg version instead of specific version number
-rm -rf $__Android_Cross_Dir/deb/
-rm -rf $__Android_Cross_Dir/tmp
-
-mkdir -p $__Android_Cross_Dir/deb/
-mkdir -p $__Android_Cross_Dir/tmp/$arch/
-wget -nv -nc http://termux.net/dists/stable/main/binary-$__AndroidArch/libicu_60.2_$__AndroidArch.deb -O $__Android_Cross_Dir/deb/libicu_60.2_$__AndroidArch.deb
-wget -nv -nc http://termux.net/dists/stable/main/binary-$__AndroidArch/libicu-dev_60.2_$__AndroidArch.deb -O $__Android_Cross_Dir/deb/libicu-dev_60.2_$__AndroidArch.deb
-
-wget -nv -nc http://termux.net/dists/stable/main/binary-$__AndroidArch/libandroid-glob-dev_0.4_$__AndroidArch.deb -O $__Android_Cross_Dir/deb/libandroid-glob-dev_0.4_$__AndroidArch.deb
-wget -nv -nc http://termux.net/dists/stable/main/binary-$__AndroidArch/libandroid-glob_0.4_$__AndroidArch.deb -O $__Android_Cross_Dir/deb/libandroid-glob_0.4_$__AndroidArch.deb
-wget -nv -nc http://termux.net/dists/stable/main/binary-$__AndroidArch/libandroid-support-dev_22_$__AndroidArch.deb -O $__Android_Cross_Dir/deb/libandroid-support-dev_22_$__AndroidArch.deb
-wget -nv -nc http://termux.net/dists/stable/main/binary-$__AndroidArch/libandroid-support_22_$__AndroidArch.deb -O $__Android_Cross_Dir/deb/libandroid-support_22_$__AndroidArch.deb
-wget -nv -nc http://termux.net/dists/stable/main/binary-$__AndroidArch/liblzma-dev_5.2.3_$__AndroidArch.deb  -O $__Android_Cross_Dir/deb/liblzma-dev_5.2.3_$__AndroidArch.deb
-wget -nv -nc http://termux.net/dists/stable/main/binary-$__AndroidArch/liblzma_5.2.3_$__AndroidArch.deb -O $__Android_Cross_Dir/deb/liblzma_5.2.3_$__AndroidArch.deb
-wget -nv -nc http://termux.net/dists/stable/main/binary-$__AndroidArch/libunwind-dev_1.2.20170304_$__AndroidArch.deb  -O $__Android_Cross_Dir/deb/libunwind-dev_1.2.20170304_$__AndroidArch.deb
-wget -nv -nc http://termux.net/dists/stable/main/binary-$__AndroidArch/libunwind_1.2.20170304_$__AndroidArch.deb -O $__Android_Cross_Dir/deb/libunwind_1.2.20170304_$__AndroidArch.deb
-
-echo Unpacking Termux packages
-dpkg -x $__Android_Cross_Dir/deb/libicu_60.2_$__AndroidArch.deb $__Android_Cross_Dir/tmp/$__AndroidArch/
-dpkg -x $__Android_Cross_Dir/deb/libicu-dev_60.2_$__AndroidArch.deb $__Android_Cross_Dir/tmp/$__AndroidArch/
-dpkg -x $__Android_Cross_Dir/deb/libandroid-glob-dev_0.4_$__AndroidArch.deb $__Android_Cross_Dir/tmp/$__AndroidArch/
-dpkg -x $__Android_Cross_Dir/deb/libandroid-glob_0.4_$__AndroidArch.deb $__Android_Cross_Dir/tmp/$__AndroidArch/
-dpkg -x $__Android_Cross_Dir/deb/libandroid-support-dev_22_$__AndroidArch.deb $__Android_Cross_Dir/tmp/$__AndroidArch/
-dpkg -x $__Android_Cross_Dir/deb/libandroid-support_22_$__AndroidArch.deb $__Android_Cross_Dir/tmp/$__AndroidArch/
-dpkg -x $__Android_Cross_Dir/deb/liblzma-dev_5.2.3_$__AndroidArch.deb $__Android_Cross_Dir/tmp/$__AndroidArch/
-dpkg -x $__Android_Cross_Dir/deb/liblzma_5.2.3_$__AndroidArch.deb $__Android_Cross_Dir/tmp/$__AndroidArch/
-dpkg -x $__Android_Cross_Dir/deb/libunwind-dev_1.2.20170304_$__AndroidArch.deb $__Android_Cross_Dir/tmp/$__AndroidArch/
-dpkg -x $__Android_Cross_Dir/deb/libunwind_1.2.20170304_$__AndroidArch.deb $__Android_Cross_Dir/tmp/$__AndroidArch/
-
-cp -R $__Android_Cross_Dir/tmp/$__AndroidArch/data/data/com.termux/files/usr/* $__ToolchainDir/sysroot/usr/
-
-# Generate platform file for build.sh script to assign to __DistroRid
-echo "Generating platform file..."
-
-echo "RID=android.21-arm64" > $__ToolchainDir/sysroot/android_platform
-echo Now run:
-echo CONFIG_DIR=\`realpath cross/android/$__BuildArch\` ROOTFS_DIR=\`realpath $__ToolchainDir/sysroot\` ./build.sh cross $__BuildArch skipgenerateversion skipnuget cmakeargs -DENABLE_LLDBPLUGIN=0
-
+IyEvdXNyL2Jpbi9lbnYgYmFzaApzZXQgLWUKX19OREtfVmVyc2lvbj1yMTQK
+CnVzYWdlKCkKewogICAgZWNobyAiQ3JlYXRlcyBhIHRvb2xjaGFpbiBhbmQg
+c3lzcm9vdCB1c2VkIGZvciBjcm9zcy1jb21waWxpbmcgZm9yIEFuZHJvaWQu
+IgogICAgZWNoby4KICAgIGVjaG8gIlVzYWdlOiAkMCBbQnVpbGRBcmNoXSBb
+QXBpTGV2ZWxdIgogICAgZWNoby4KICAgIGVjaG8gIkJ1aWxkQXJjaCBpcyB0
+aGUgdGFyZ2V0IGFyY2hpdGVjdHVyZSBvZiBBbmRyb2lkLiBDdXJyZW50bHkg
+b25seSBhcm02NCBpcyBzdXBwb3J0ZWQuIgogICAgZWNobyAiQXBpTGV2ZWwg
+aXMgdGhlIHRhcmdldCBBbmRyb2lkIEFQSSBsZXZlbC4gQVBJIGxldmVscyB1
+c3VhbGx5IG1hdGNoIHRvIEFuZHJvaWQgcmVsZWFzZXMuIFNlZSBodHRwczov
+L3NvdXJjZS5hbmRyb2lkLmNvbS9zb3VyY2UvYnVpbGQtbnVtYmVycy5odG1s
+IgogICAgZWNoby4KICAgIGVjaG8gIkJ5IGRlZmF1bHQsIHRoZSB0b29sY2hh
+aW4gYW5kIHN5c3Jvb3Qgd2lsbCBiZSBnZW5lcmF0ZWQgaW4gY3Jvc3MvYW5k
+cm9pZC1yb290ZnMvdG9vbGNoYWluL1tCdWlsZEFyY2hdLiBZb3UgY2FuIGNo
+YW5nZSB0aGlzIGJlaGF2aW9yIgogICAgZWNobyAiYnkgc2V0dGluZyB0aGUg
+VE9PTENIQUlOX0RJUiBlbnZpcm9ubWVudCB2YXJpYWJsZSIKICAgIGVjaG8u
+CiAgICBlY2hvICJCeSBkZWZhdWx0LCB0aGUgTkRLIHdpbGwgYmUgZG93bmxv
+YWRlZCBpbnRvIHRoZSBjcm9zcy9hbmRyb2lkLXJvb3Rmcy9hbmRyb2lkLW5k
+ay0kX19OREtfVmVyc2lvbiBkaXJlY3RvcnkuIElmIHlvdSBhbHJlYWR5IGhh
+dmUgYW4gTkRLIGluc3RhbGxhdGlvbiwiCiAgICBlY2hvICJ5b3UgY2FuIHNl
+dCB0aGUgTkRLX0RJUiBlbnZpcm9ubWVudCB2YXJpYWJsZSB0byBoYXZlIHRo
+aXMgc2NyaXB0IHVzZSB0aGF0IGluc3RhbGxhdGlvbiBvZiB0aGUgTkRLLiIK
+ICAgIGVjaG8gIkJ5IGRlZmF1bHQsIHRoaXMgc2NyaXB0IHdpbGwgZ2VuZXJh
+dGUgYSBmaWxlLCBhbmRyb2lkX3BsYXRmb3JtLCBpbiB0aGUgcm9vdCBvZiB0
+aGUgUk9PVEZTX0RJUiBkaXJlY3RvcnkgdGhhdCBjb250YWlucyB0aGUgUklE
+IGZvciB0aGUgc3VwcG9ydGVkIGFuZCB0ZXN0ZWQgQW5kcm9pZCBidWlsZDog
+YW5kcm9pZC4yMS1hcm02NC4gVGhpcyBmaWxlIGlzIHRvIHJlcGxhY2UgJy9l
+dGMvb3MtcmVsZWFzZScsIHdoaWNoIGlzIG5vdCBhdmFpbGFibGUgZm9yIEFu
+ZHJvaWQuIgogICAgZXhpdCAxCn0KCl9fQXBpTGV2ZWw9MjEgIyBUaGUgbWlu
+aW11bSBwbGF0Zm9ybSBmb3IgYXJtNjQgaXMgQVBJIGxldmVsIDIxCl9fQnVp
+bGRBcmNoPWFybTY0Cl9fQW5kcm9pZEFyY2g9YWFyY2g2NApfX0FuZHJvaWRU
+b29sY2hhaW49YWFyY2g2NC1saW51eC1hbmRyb2lkCgpmb3IgaSBpbiAiJEAi
+CiAgICBkbwogICAgICAgIGxvd2VyST0iJChlY2hvICRpIHwgYXdrICd7cHJp
+bnQgdG9sb3dlcigkMCl9JykiCiAgICAgICAgY2FzZSAkbG93ZXJJIGluCiAg
+ICAgICAgLT98LWh8LS1oZWxwKQogICAgICAgICAgICB1c2FnZQogICAgICAg
+ICAgICBleGl0IDEKICAgICAgICAgICAgOzsKICAgICAgICBhcm02NCkKICAg
+ICAgICAgICAgX19CdWlsZEFyY2g9YXJtNjQKICAgICAgICAgICAgX19BbmRy
+b2lkQXJjaD1hYXJjaDY0CiAgICAgICAgICAgIF9fQW5kcm9pZFRvb2xjaGFp
+bj1hYXJjaDY0LWxpbnV4LWFuZHJvaWQKICAgICAgICAgICAgOzsKICAgICAg
+ICBhcm0pCiAgICAgICAgICAgIF9fQnVpbGRBcmNoPWFybQogICAgICAgICAg
+ICBfX0FuZHJvaWRBcmNoPWFybQogICAgICAgICAgICBfX0FuZHJvaWRUb29s
+Y2hhaW49YXJtLWxpbnV4LWFuZHJvaWRlYWJpCiAgICAgICAgICAgIDs7CiAg
+ICAgICAgKlswLTldKQogICAgICAgICAgICBfX0FwaUxldmVsPSRpCiAgICAg
+ICAgICAgIDs7CiAgICAgICAgKikKICAgICAgICAgICAgX19VbnByb2Nlc3Nl
+ZEJ1aWxkQXJncz0iJF9fVW5wcm9jZXNzZWRCdWlsZEFyZ3MgJGkiCiAgICAg
+ICAgICAgIDs7CiAgICBlc2FjCmRvbmUKCiMgT2J0YWluIHRoZSBsb2NhdGlv
+biBvZiB0aGUgYmFzaCBzY3JpcHQgdG8gZmlndXJlIG91dCB3aGVyZSB0aGUg
+cm9vdCBvZiB0aGUgcmVwbyBpcy4KX19Dcm9zc0Rpcj0iJCggY2QgIiQoIGRp
+cm5hbWUgIiR7QkFTSF9TT1VSQ0VbMF19IiApIiAmJiBwd2QgKSIKCl9fQW5k
+cm9pZF9Dcm9zc19EaXI9IiRfX0Nyb3NzRGlyL2FuZHJvaWQtcm9vdGZzIgpf
+X05ES19EaXI9IiRfX0FuZHJvaWRfQ3Jvc3NfRGlyL2FuZHJvaWQtbmRrLSRf
+X05ES19WZXJzaW9uIgpfX2xpYnVud2luZF9EaXI9IiRfX0FuZHJvaWRfQ3Jv
+c3NfRGlyL2xpYnVud2luZCIKX19sbGRiX0Rpcj0iJF9fQW5kcm9pZF9Dcm9z
+c19EaXIvbGxkYiIKX19Ub29sY2hhaW5EaXI9IiRfX0FuZHJvaWRfQ3Jvc3Nf
+RGlyL3Rvb2xjaGFpbi8kX19CdWlsZEFyY2giCgppZiBbWyAtbiAiJFRPT0xD
+SEFJTl9ESVIiIF1dOyB0aGVuCiAgICBfX1Rvb2xjaGFpbkRpcj0kVE9PTENI
+QUlOX0RJUgpmaQoKaWYgW1sgLW4gIiROREtfRElSIiBdXTsgdGhlbgogICAg
+X19OREtfRGlyPSROREtfRElSCmZpCgplY2hvICJUYXJnZXQgQVBJIGxldmVs
+OiAkX19BcGlMZXZlbCIKZWNobyAiVGFyZ2V0IGFyY2hpdGVjdHVyZTogJF9f
+QnVpbGRBcmNoIgplY2hvICJOREsgbG9jYXRpb246ICRfX05ES19EaXIiCmVj
+aG8gIlRhcmdldCBUb29sY2hhaW4gbG9jYXRpb246ICRfX1Rvb2xjaGFpbkRp
+ciIKCiMgRG93bmxvYWQgdGhlIE5ESyBpZiByZXF1aXJlZAppZiBbICEgLWQg
+JF9fTkRLX0RpciBdOyB0aGVuCiAgICBlY2hvIERvd25sb2FkaW5nIHRoZSBO
+REsgaW50byAkX19OREtfRGlyCiAgICBta2RpciAtcCAkX19OREtfRGlyCiAg
+ICB3Z2V0IC1udiAtbmMgLS1zaG93LXByb2dyZXNzIGh0dHBzOi8vZGwuZ29v
+Z2xlLmNvbS9hbmRyb2lkL3JlcG9zaXRvcnkvYW5kcm9pZC1uZGstJF9fTkRL
+X1ZlcnNpb24tbGludXgteDg2XzY0LnppcCAtTyAkX19BbmRyb2lkX0Nyb3Nz
+X0Rpci9hbmRyb2lkLW5kay0kX19OREtfVmVyc2lvbi1saW51eC14ODZfNjQu
+emlwCiAgICB1bnppcCAtcSAkX19BbmRyb2lkX0Nyb3NzX0Rpci9hbmRyb2lk
+LW5kay0kX19OREtfVmVyc2lvbi1saW51eC14ODZfNjQuemlwIC1kICRfX0Fu
+ZHJvaWRfQ3Jvc3NfRGlyCmZpCgppZiBbICEgLWQgJF9fbGxkYl9EaXIgXTsg
+dGhlbgogICAgbWtkaXIgLXAgJF9fbGxkYl9EaXIKICAgIGVjaG8gRG93bmxv
+YWRpbmcgTExEQiBpbnRvICRfX2xsZGJfRGlyCiAgICB3Z2V0IC1udiAtbmMg
+LS1zaG93LXByb2dyZXNzIGh0dHBzOi8vZGwuZ29vZ2xlLmNvbS9hbmRyb2lk
+L3JlcG9zaXRvcnkvbGxkYi0yLjMuMzYxNDk5Ni1saW51eC14ODZfNjQuemlw
+IC1PICRfX0FuZHJvaWRfQ3Jvc3NfRGlyL2xsZGItMi4zLjM2MTQ5OTYtbGlu
+dXgteDg2XzY0LnppcAogICAgdW56aXAgLXEgJF9fQW5kcm9pZF9Dcm9zc19E
+aXIvbGxkYi0yLjMuMzYxNDk5Ni1saW51eC14ODZfNjQuemlwIC1kICRfX2xs
+ZGJfRGlyCmZpCgojIENyZWF0ZSB0aGUgUm9vdEZTIGZvciBib3RoIGFybTY0
+IGFzIHdlbGwgYXMgYWFyY2gKcm0gLXJmICRfX0FuZHJvaWRfQ3Jvc3NfRGly
+L3Rvb2xjaGFpbgoKZWNobyBHZW5lcmF0aW5nIHRoZSAkX19CdWlsZEFyY2gg
+dG9vbGNoYWluCiRfX05ES19EaXIvYnVpbGQvdG9vbHMvbWFrZV9zdGFuZGFs
+b25lX3Rvb2xjaGFpbi5weSAtLWFyY2ggJF9fQnVpbGRBcmNoIC0tYXBpICRf
+X0FwaUxldmVsIC0taW5zdGFsbC1kaXIgJF9fVG9vbGNoYWluRGlyCgojIElu
+c3RhbGwgdGhlIHJlcXVpcmVkIHBhY2thZ2VzIGludG8gdGhlIHRvb2xjaGFp
+bgojIFRPRE86IEFkZCBsb2dpYyB0byBnZXQgbGF0ZXN0IHBrZyB2ZXJzaW9u
+IGluc3RlYWQgb2Ygc3BlY2lmaWMgdmVyc2lvbiBudW1iZXIKcm0gLXJmICRf
+X0FuZHJvaWRfQ3Jvc3NfRGlyL2RlYi8Kcm0gLXJmICRfX0FuZHJvaWRfQ3Jv
+c3NfRGlyL3RtcAoKbWtkaXIgLXAgJF9fQW5kcm9pZF9Dcm9zc19EaXIvZGVi
+Lwpta2RpciAtcCAkX19BbmRyb2lkX0Nyb3NzX0Rpci90bXAvJGFyY2gvCndn
+ZXQgLW52IC1uYyBodHRwOi8vdGVybXV4Lm5ldC9kaXN0cy9zdGFibGUvbWFp
+bi9iaW5hcnktJF9fQW5kcm9pZEFyY2gvbGliaWN1XzYwLjJfJF9fQW5kcm9p
+ZEFyY2guZGViIC1PICRfX0FuZHJvaWRfQ3Jvc3NfRGlyL2RlYi9saWJpY3Vf
+NjAuMl8kX19BbmRyb2lkQXJjaC5kZWIKd2dldCAtbnYgLW5jIGh0dHA6Ly90
+ZXJtdXgubmV0L2Rpc3RzL3N0YWJsZS9tYWluL2JpbmFyeS0kX19BbmRyb2lk
+QXJjaC9saWJpY3UtZGV2XzYwLjJfJF9fQW5kcm9pZEFyY2guZGViIC1PICRf
+X0FuZHJvaWRfQ3Jvc3NfRGlyL2RlYi9saWJpY3UtZGV2XzYwLjJfJF9fQW5k
+cm9pZEFyY2guZGViCgp3Z2V0IC1udiAtbmMgaHR0cDovL3Rlcm11eC5uZXQv
+ZGlzdHMvc3RhYmxlL21haW4vYmluYXJ5LSRfX0FuZHJvaWRBcmNoL2xpYmFu
+ZHJvaWQtZ2xvYi1kZXZfMC40XyRfX0FuZHJvaWRBcmNoLmRlYiAtTyAkX19B
+bmRyb2lkX0Nyb3NzX0Rpci9kZWIvbGliYW5kcm9pZC1nbG9iLWRldl8wLjRf
+JF9fQW5kcm9pZEFyY2guZGViCndnZXQgLW52IC1uYyBodHRwOi8vdGVybXV4
+Lm5ldC9kaXN0cy9zdGFibGUvbWFpbi9iaW5hcnktJF9fQW5kcm9pZEFyY2gv
+bGliYW5kcm9pZC1nbG9iXzAuNF8kX19BbmRyb2lkQXJjaC5kZWIgLU8gJF9f
+QW5kcm9pZF9Dcm9zc19EaXIvZGViL2xpYmFuZHJvaWQtZ2xvYl8wLjRfJF9f
+QW5kcm9pZEFyY2guZGViCndnZXQgLW52IC1uYyBodHRwOi8vdGVybXV4Lm5l
+dC9kaXN0cy9zdGFibGUvbWFpbi9iaW5hcnktJF9fQW5kcm9pZEFyY2gvbGli
+YW5kcm9pZC1zdXBwb3J0LWRldl8yMl8kX19BbmRyb2lkQXJjaC5kZWIgLU8g
+JF9fQW5kcm9pZF9Dcm9zc19EaXIvZGViL2xpYmFuZHJvaWQtc3VwcG9ydC1k
+ZXZfMjJfJF9fQW5kcm9pZEFyY2guZGViCndnZXQgLW52IC1uYyBodHRwOi8v
+dGVybXV4Lm5ldC9kaXN0cy9zdGFibGUvbWFpbi9iaW5hcnktJF9fQW5kcm9p
+ZEFyY2gvbGliYW5kcm9pZC1zdXBwb3J0XzIyXyRfX0FuZHJvaWRBcmNoLmRl
+YiAtTyAkX19BbmRyb2lkX0Nyb3NzX0Rpci9kZWIvbGliYW5kcm9pZC1zdXBw
+b3J0XzIyXyRfX0FuZHJvaWRBcmNoLmRlYgp3Z2V0IC1udiAtbmMgaHR0cDov
+L3Rlcm11eC5uZXQvZGlzdHMvc3RhYmxlL21haW4vYmluYXJ5LSRfX0FuZHJv
+aWRBcmNoL2xpYmx6bWEtZGV2XzUuMi4zXyRfX0FuZHJvaWRBcmNoLmRlYiAg
+LU8gJF9fQW5kcm9pZF9Dcm9zc19EaXIvZGViL2xpYmx6bWEtZGV2XzUuMi4z
+XyRfX0FuZHJvaWRBcmNoLmRlYgp3Z2V0IC1udiAtbmMgaHR0cDovL3Rlcm11
+eC5uZXQvZGlzdHMvc3RhYmxlL21haW4vYmluYXJ5LSRfX0FuZHJvaWRBcmNo
+L2xpYmx6bWFfNS4yLjNfJF9fQW5kcm9pZEFyY2guZGViIC1PICRfX0FuZHJv
+aWRfQ3Jvc3NfRGlyL2RlYi9saWJsem1hXzUuMi4zXyRfX0FuZHJvaWRBcmNo
+LmRlYgp3Z2V0IC1udiAtbmMgaHR0cDovL3Rlcm11eC5uZXQvZGlzdHMvc3Rh
+YmxlL21haW4vYmluYXJ5LSRfX0FuZHJvaWRBcmNoL2xpYnVud2luZC1kZXZf
+MS4yLjIwMTcwMzA0XyRfX0FuZHJvaWRBcmNoLmRlYiAgLU8gJF9fQW5kcm9p
+ZF9Dcm9zc19EaXIvZGViL2xpYnVud2luZC1kZXZfMS4yLjIwMTcwMzA0XyRf
+X0FuZHJvaWRBcmNoLmRlYgp3Z2V0IC1udiAtbmMgaHR0cDovL3Rlcm11eC5u
+ZXQvZGlzdHMvc3RhYmxlL21haW4vYmluYXJ5LSRfX0FuZHJvaWRBcmNoL2xp
+YnVud2luZF8xLjIuMjAxNzAzMDRfJF9fQW5kcm9pZEFyY2guZGViIC1PICRf
+X0FuZHJvaWRfQ3Jvc3NfRGlyL2RlYi9saWJ1bndpbmRfMS4yLjIwMTcwMzA0
+XyRfX0FuZHJvaWRBcmNoLmRlYgoKZWNobyBVbnBhY2tpbmcgVGVybXV4IHBh
+Y2thZ2VzCmRwa2cgLXggJF9fQW5kcm9pZF9Dcm9zc19EaXIvZGViL2xpYmlj
+dV82MC4yXyRfX0FuZHJvaWRBcmNoLmRlYiAkX19BbmRyb2lkX0Nyb3NzX0Rp
+ci90bXAvJF9fQW5kcm9pZEFyY2gvCmRwa2cgLXggJF9fQW5kcm9pZF9Dcm9z
+c19EaXIvZGViL2xpYmljdS1kZXZfNjAuMl8kX19BbmRyb2lkQXJjaC5kZWIg
+JF9fQW5kcm9pZF9Dcm9zc19EaXIvdG1wLyRfX0FuZHJvaWRBcmNoLwpkcGtn
+IC14ICRfX0FuZHJvaWRfQ3Jvc3NfRGlyL2RlYi9saWJhbmRyb2lkLWdsb2It
+ZGV2XzAuNF8kX19BbmRyb2lkQXJjaC5kZWIgJF9fQW5kcm9pZF9Dcm9zc19E
+aXIvdG1wLyRfX0FuZHJvaWRBcmNoLwpkcGtnIC14ICRfX0FuZHJvaWRfQ3Jv
+c3NfRGlyL2RlYi9saWJhbmRyb2lkLWdsb2JfMC40XyRfX0FuZHJvaWRBcmNo
+LmRlYiAkX19BbmRyb2lkX0Nyb3NzX0Rpci90bXAvJF9fQW5kcm9pZEFyY2gv
+CmRwa2cgLXggJF9fQW5kcm9pZF9Dcm9zc19EaXIvZGViL2xpYmFuZHJvaWQt
+c3VwcG9ydC1kZXZfMjJfJF9fQW5kcm9pZEFyY2guZGViICRfX0FuZHJvaWRf
+Q3Jvc3NfRGlyL3RtcC8kX19BbmRyb2lkQXJjaC8KZHBrZyAteCAkX19BbmRy
+b2lkX0Nyb3NzX0Rpci9kZWIvbGliYW5kcm9pZC1zdXBwb3J0XzIyXyRfX0Fu
+ZHJvaWRBcmNoLmRlYiAkX19BbmRyb2lkX0Nyb3NzX0Rpci90bXAvJF9fQW5k
+cm9pZEFyY2gvCmRwa2cgLXggJF9fQW5kcm9pZF9Dcm9zc19EaXIvZGViL2xp
+Ymx6bWEtZGV2XzUuMi4zXyRfX0FuZHJvaWRBcmNoLmRlYiAkX19BbmRyb2lk
+X0Nyb3NzX0Rpci90bXAvJF9fQW5kcm9pZEFyY2gvCmRwa2cgLXggJF9fQW5k
+cm9pZF9Dcm9zc19EaXIvZGViL2xpYmx6bWFfNS4yLjNfJF9fQW5kcm9pZEFy
+Y2guZGViICRfX0FuZHJvaWRfQ3Jvc3NfRGlyL3RtcC8kX19BbmRyb2lkQXJj
+aC8KZHBrZyAteCAkX19BbmRyb2lkX0Nyb3NzX0Rpci9kZWIvbGlidW53aW5k
+LWRldl8xLjIuMjAxNzAzMDRfJF9fQW5kcm9pZEFyY2guZGViICRfX0FuZHJv
+aWRfQ3Jvc3NfRGlyL3RtcC8kX19BbmRyb2lkQXJjaC8KZHBrZyAteCAkX19B
+bmRyb2lkX0Nyb3NzX0Rpci9kZWIvbGlidW53aW5kXzEuMi4yMDE3MDMwNF8k
+X19BbmRyb2lkQXJjaC5kZWIgJF9fQW5kcm9pZF9Dcm9zc19EaXIvdG1wLyRf
+X0FuZHJvaWRBcmNoLwoKY3AgLVIgJF9fQW5kcm9pZF9Dcm9zc19EaXIvdG1w
+LyRfX0FuZHJvaWRBcmNoL2RhdGEvZGF0YS9jb20udGVybXV4L2ZpbGVzL3Vz
+ci8qICRfX1Rvb2xjaGFpbkRpci9zeXNyb290L3Vzci8KCiMgR2VuZXJhdGUg
+cGxhdGZvcm0gZmlsZSBmb3IgYnVpbGQuc2ggc2NyaXB0IHRvIGFzc2lnbiB0
+byBfX0Rpc3Ryb1JpZAplY2hvICJHZW5lcmF0aW5nIHBsYXRmb3JtIGZpbGUu
+Li4iCgplY2hvICJSSUQ9YW5kcm9pZC4yMS1hcm02NCIgPiAkX19Ub29sY2hh
+aW5EaXIvc3lzcm9vdC9hbmRyb2lkX3BsYXRmb3JtCmVjaG8gTm93IHJ1bjoK
+ZWNobyBDT05GSUdfRElSPVxgcmVhbHBhdGggY3Jvc3MvYW5kcm9pZC8kX19C
+dWlsZEFyY2hcYCBST09URlNfRElSPVxgcmVhbHBhdGggJF9fVG9vbGNoYWlu
+RGlyL3N5c3Jvb3RcYCAuL2J1aWxkLnNoIGNyb3NzICRfX0J1aWxkQXJjaCBz
+a2lwZ2VuZXJhdGV2ZXJzaW9uIHNraXBudWdldCBjbWFrZWFyZ3MgLURFTkFC
+TEVfTExEQlBMVUdJTj0wCgo=

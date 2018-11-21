@@ -1,155 +1,128 @@
-parameters:
-  helixSource: 'undefined_defaulted_in_telemetry.yml'
-  helixType: 'undefined_defaulted_in_telemetry.yml'
-  buildConfig: ''
-  runAsPublic: false
-
-steps:
-- ${{ if and(eq(parameters.runAsPublic, 'false'), not(eq(variables['System.TeamProject'], 'public'))) }}:
-  - task: AzureKeyVault@1
-    inputs:
-      azureSubscription: 'HelixProd_KeyVault'
-      KeyVaultName: HelixProdKV
-      SecretsFilter: 'HelixApiAccessToken'
-    condition: always()
-- bash: |
-    # create a temporary file
-    jobInfo=`mktemp`
-
-    # write job info content to temporary file
-    cat > $jobInfo <<JobListStuff
-    {
-      "QueueId": "$QueueId",
-      "Source": "$Source",
-      "Type": "$Type",
-      "Build": "$Build",
-      "Attempt": "$Attempt",
-      "Properties": {
-        "operatingSystem": "$OperatingSystem",
-        "configuration": "$Configuration"
-      }
-    }
-    JobListStuff
-    
-    # create a temporary file for curl output
-    res=`mktemp`
-
-    accessTokenParameter=''
-    if [[ ! "$HelixApiAccessToken" == "" ]]; then
-      accessTokenParameter="?access_token=$HelixApiAccessToken"
-    fi
-
-    curlResult=`
-      cat $jobInfo |\
-      curl --verbose --output $res --write-out "%{http_code}" \
-      -H 'Content-Type: application/json' \
-      -X POST "https://helix.dot.net/api/2018-03-14/telemetry/job$accessTokenParameter" -d @-`
-    curlStatus=$?
-
-    if [ $curlStatus -eq 0 ]; then
-      if [ $curlResult -gt 299 ] || [ $curlResult -lt 200 ]; then
-        curlStatus=$curlResult
-      fi
-    fi
-
-    curlResult=`cat $res`
-    
-    # validate status of curl command
-    if [ $curlStatus -ne 0 ]; then
-      echo "Failed To Send Job Start information"
-      # We have to append the ## vso prefix or vso will pick up the command when it dumps the inline script into the shell
-      vstsLogOutput="vso[task.logissue type=error;sourcepath=telemetry/start-job.sh;code=1;]Failed to Send Job Start information: $curlStatus"
-      echo "##$vstsLogOutput"
-      exit 1
-    fi
-    
-    # Set the Helix_JobToken variable
-    export Helix_JobToken=`echo $curlResult | xargs echo` # Strip Quotes
-    echo "##vso[task.setvariable variable=Helix_JobToken;issecret=true;]$Helix_JobToken"
-  displayName: Send Unix Job Start Telemetry
-  env:
-    HelixApiAccessToken: $(HelixApiAccessToken)
-    Source: ${{ parameters.helixSource }}
-    Type: ${{ parameters.helixType }}
-    Build: $(Build.BuildNumber)
-    QueueId: $(Agent.Os)
-    Attempt: 1
-    OperatingSystem: $(Agent.Os)
-    Configuration: ${{ parameters.buildConfig }}
-  condition: and(always(), ne(variables['Agent.Os'], 'Windows_NT'))
-- bash: |
-    res=`mktemp`
-    curlResult=`
-      curl --verbose --output $res --write-out "%{http_code}"\
-      -H 'Content-Type: application/json' \
-      -H "X-Helix-Job-Token: $Helix_JobToken" \
-      -H 'Content-Length: 0' \
-      -X POST -G "https://helix.dot.net/api/2018-03-14/telemetry/job/build" \
-      --data-urlencode "buildUri=$BuildUri"`
-    curlStatus=$?
-
-    if [ $curlStatus -eq 0 ]; then
-      if [ $curlResult -gt 299 ] || [ $curlResult -lt 200 ]; then
-        curlStatus=$curlResult
-      fi
-    fi
-
-    curlResult=`cat $res`
-
-    # validate status of curl command
-    if [ $curlStatus -ne 0 ]; then
-      echo "Failed to Send Build Start information"
-      vstsLogOutput="vso[task.logissue type=error;sourcepath=telemetry/build/start.sh;code=1;]Failed to Send Build Start information: $curlStatus"
-      echo "##$vstsLogOutput"
-      exit 1
-    fi
-
-    export Helix_WorkItemId=`echo $curlResult | xargs echo` # Strip Quotes
-    echo "##vso[task.setvariable variable=Helix_WorkItemId]$Helix_WorkItemId"
-  displayName: Send Unix Build Start Telemetry
-  env:
-    BuildUri: $(System.TaskDefinitionsUri)$(System.TeamProject)/_build/index?buildId=$(Build.BuildId)&_a=summary
-    Helix_JobToken: $(Helix_JobToken)
-  condition: and(always(), ne(variables['Agent.Os'], 'Windows_NT'))
-  
-- powershell: |
-    $jobInfo = [pscustomobject]@{
-      QueueId=$env:QueueId;
-      Source=$env:Source;
-      Type=$env:Type;
-      Build=$env:Build;
-      Attempt=$env:Attempt;
-      Properties=[pscustomobject]@{ operatingSystem=$env:OperatingSystem; configuration=$env:Configuration };
-    }
-    
-    $jobInfoJson = $jobInfo | ConvertTo-Json
-
-    if ($env:HelixApiAccessToken) {
-      $accessTokenParameter="?access_token=$($env:HelixApiAccessToken)"
-    }
-    Write-Host "Job Info: $jobInfoJson"
-    $jobToken = Invoke-RestMethod -Uri "https://helix.dot.net/api/2018-03-14/telemetry/job$($accessTokenParameter)" -Method Post -ContentType "application/json" -Body $jobInfoJson
-    $env:Helix_JobToken = $jobToken
-    Write-Host "##vso[task.setvariable variable=Helix_JobToken;issecret=true;]$env:Helix_JobToken"
-  displayName: Send Windows Job Start Telemetry
-  env:
-    HelixApiAccessToken: $(HelixApiAccessToken)
-    Source: ${{ parameters.helixSource }}
-    Type: ${{ parameters.helixType }}
-    Build: $(Build.BuildNumber)
-    QueueId: $(Agent.Os)
-    Attempt: 1
-    OperatingSystem: $(Agent.Os)
-    Configuration: ${{ parameters.buildConfig }}
-  condition: and(always(), eq(variables['Agent.Os'], 'Windows_NT'))
-- powershell: |
-    $workItemId = Invoke-RestMethod -Uri "https://helix.dot.net/api/2018-03-14/telemetry/job/build?buildUri=$([Net.WebUtility]::UrlEncode($env:BuildUri))" -Method Post -ContentType "application/json" -Body "" `
-      -Headers @{ 'X-Helix-Job-Token'=$env:Helix_JobToken }
-  
-    $env:Helix_WorkItemId = $workItemId
-    Write-Host "##vso[task.setvariable variable=Helix_WorkItemId]$env:Helix_WorkItemId"
-  displayName: Send Windows Build Start Telemetry
-  env:
-    BuildUri: $(System.TaskDefinitionsUri)$(System.TeamProject)/_build/index?buildId=$(Build.BuildId)&_a=summary
-    Helix_JobToken: $(Helix_JobToken)
-  condition: and(always(), eq(variables['Agent.Os'], 'Windows_NT'))
+cGFyYW1ldGVyczoKICBoZWxpeFNvdXJjZTogJ3VuZGVmaW5lZF9kZWZhdWx0
+ZWRfaW5fdGVsZW1ldHJ5LnltbCcKICBoZWxpeFR5cGU6ICd1bmRlZmluZWRf
+ZGVmYXVsdGVkX2luX3RlbGVtZXRyeS55bWwnCiAgYnVpbGRDb25maWc6ICcn
+CiAgcnVuQXNQdWJsaWM6IGZhbHNlCgpzdGVwczoKLSAke3sgaWYgYW5kKGVx
+KHBhcmFtZXRlcnMucnVuQXNQdWJsaWMsICdmYWxzZScpLCBub3QoZXEodmFy
+aWFibGVzWydTeXN0ZW0uVGVhbVByb2plY3QnXSwgJ3B1YmxpYycpKSkgfX06
+CiAgLSB0YXNrOiBBenVyZUtleVZhdWx0QDEKICAgIGlucHV0czoKICAgICAg
+YXp1cmVTdWJzY3JpcHRpb246ICdIZWxpeFByb2RfS2V5VmF1bHQnCiAgICAg
+IEtleVZhdWx0TmFtZTogSGVsaXhQcm9kS1YKICAgICAgU2VjcmV0c0ZpbHRl
+cjogJ0hlbGl4QXBpQWNjZXNzVG9rZW4nCiAgICBjb25kaXRpb246IGFsd2F5
+cygpCi0gYmFzaDogfAogICAgIyBjcmVhdGUgYSB0ZW1wb3JhcnkgZmlsZQog
+ICAgam9iSW5mbz1gbWt0ZW1wYAoKICAgICMgd3JpdGUgam9iIGluZm8gY29u
+dGVudCB0byB0ZW1wb3JhcnkgZmlsZQogICAgY2F0ID4gJGpvYkluZm8gPDxK
+b2JMaXN0U3R1ZmYKICAgIHsKICAgICAgIlF1ZXVlSWQiOiAiJFF1ZXVlSWQi
+LAogICAgICAiU291cmNlIjogIiRTb3VyY2UiLAogICAgICAiVHlwZSI6ICIk
+VHlwZSIsCiAgICAgICJCdWlsZCI6ICIkQnVpbGQiLAogICAgICAiQXR0ZW1w
+dCI6ICIkQXR0ZW1wdCIsCiAgICAgICJQcm9wZXJ0aWVzIjogewogICAgICAg
+ICJvcGVyYXRpbmdTeXN0ZW0iOiAiJE9wZXJhdGluZ1N5c3RlbSIsCiAgICAg
+ICAgImNvbmZpZ3VyYXRpb24iOiAiJENvbmZpZ3VyYXRpb24iCiAgICAgIH0K
+ICAgIH0KICAgIEpvYkxpc3RTdHVmZgogICAgCiAgICBjYXQgJGpvYkluZm8K
+CiAgICAjIGNyZWF0ZSBhIHRlbXBvcmFyeSBmaWxlIGZvciBjdXJsIG91dHB1
+dAogICAgcmVzPWBta3RlbXBgCgogICAgYWNjZXNzVG9rZW5QYXJhbWV0ZXI9
+Ij9hY2Nlc3NfdG9rZW49JEhlbGl4QXBpQWNjZXNzVG9rZW4iCgogICAgY3Vy
+bFJlc3VsdD1gCiAgICAgIGNhdCAkam9iSW5mbyB8XAogICAgICBjdXJsIC0t
+dHJhY2UgLSAtLXZlcmJvc2UgLS1vdXRwdXQgJHJlcyAtLXdyaXRlLW91dCAi
+JXtodHRwX2NvZGV9IiBcCiAgICAgIC1IICdDb250ZW50LVR5cGU6IGFwcGxp
+Y2F0aW9uL2pzb24nIFwKICAgICAgLVggUE9TVCAiaHR0cHM6Ly9oZWxpeC5k
+b3QubmV0L2FwaS8yMDE4LTAzLTE0L3RlbGVtZXRyeS9qb2IkYWNjZXNzVG9r
+ZW5QYXJhbWV0ZXIiIC1kIEAtYAogICAgY3VybFN0YXR1cz0kPwoKICAgIGlm
+IFsgJGN1cmxTdGF0dXMgLWVxIDAgXTsgdGhlbgogICAgICBpZiBbICRjdXJs
+UmVzdWx0IC1ndCAyOTkgXSB8fCBbICRjdXJsUmVzdWx0IC1sdCAyMDAgXTsg
+dGhlbgogICAgICAgIGN1cmxTdGF0dXM9JGN1cmxSZXN1bHQKICAgICAgZmkK
+ICAgIGZpCgogICAgY3VybFJlc3VsdD1gY2F0ICRyZXNgCiAgICAKICAgICMg
+dmFsaWRhdGUgc3RhdHVzIG9mIGN1cmwgY29tbWFuZAogICAgaWYgWyAkY3Vy
+bFN0YXR1cyAtbmUgMCBdOyB0aGVuCiAgICAgIGVjaG8gIkZhaWxlZCBUbyBT
+ZW5kIEpvYiBTdGFydCBpbmZvcm1hdGlvbiIKICAgICAgIyBXZSBoYXZlIHRv
+IGFwcGVuZCB0aGUgIyMgdnNvIHByZWZpeCBvciB2c28gd2lsbCBwaWNrIHVw
+IHRoZSBjb21tYW5kIHdoZW4gaXQgZHVtcHMgdGhlIGlubGluZSBzY3JpcHQg
+aW50byB0aGUgc2hlbGwKICAgICAgdnN0c0xvZ091dHB1dD0idnNvW3Rhc2su
+bG9naXNzdWUgdHlwZT1lcnJvcjtzb3VyY2VwYXRoPXRlbGVtZXRyeS9zdGFy
+dC1qb2Iuc2g7Y29kZT0xO11GYWlsZWQgdG8gU2VuZCBKb2IgU3RhcnQgaW5m
+b3JtYXRpb246ICRjdXJsU3RhdHVzIgogICAgICBlY2hvICIjIyR2c3RzTG9n
+T3V0cHV0IgogICAgICBleGl0IDEKICAgIGZpCiAgICAKICAgICMgU2V0IHRo
+ZSBIZWxpeF9Kb2JUb2tlbiB2YXJpYWJsZQogICAgZXhwb3J0IEhlbGl4X0pv
+YlRva2VuPWBlY2hvICRjdXJsUmVzdWx0IHwgeGFyZ3MgZWNob2AgIyBTdHJp
+cCBRdW90ZXMKICAgIGVjaG8gIiMjdnNvW3Rhc2suc2V0dmFyaWFibGUgdmFy
+aWFibGU9SGVsaXhfSm9iVG9rZW47aXNzZWNyZXQ9dHJ1ZTtdJEhlbGl4X0pv
+YlRva2VuIgogIGRpc3BsYXlOYW1lOiBTZW5kIFVuaXggSm9iIFN0YXJ0IFRl
+bGVtZXRyeQogIGVudjoKICAgIEhlbGl4QXBpQWNjZXNzVG9rZW46ICQoSGVs
+aXhBcGlBY2Nlc3NUb2tlbikKICAgIFNvdXJjZTogJHt7IHBhcmFtZXRlcnMu
+aGVsaXhTb3VyY2UgfX0KICAgIFR5cGU6ICR7eyBwYXJhbWV0ZXJzLmhlbGl4
+VHlwZSB9fQogICAgQnVpbGQ6ICQoQnVpbGQuQnVpbGROdW1iZXIpCiAgICBR
+dWV1ZUlkOiAkKEFnZW50Lk9zKQogICAgQXR0ZW1wdDogMQogICAgT3BlcmF0
+aW5nU3lzdGVtOiAkKEFnZW50Lk9zKQogICAgQ29uZmlndXJhdGlvbjogJHt7
+IHBhcmFtZXRlcnMuYnVpbGRDb25maWcgfX0KICBjb25kaXRpb246IGFuZChh
+bHdheXMoKSwgbmUodmFyaWFibGVzWydBZ2VudC5PcyddLCAnV2luZG93c19O
+VCcpKQotIGJhc2g6IHwKICAgIHJlcz1gbWt0ZW1wYAogICAgY3VybFJlc3Vs
+dD1gCiAgICAgIGN1cmwgLS12ZXJib3NlIC0tb3V0cHV0ICRyZXMgLS13cml0
+ZS1vdXQgIiV7aHR0cF9jb2RlfSJcCiAgICAgIC1IICdDb250ZW50LVR5cGU6
+IGFwcGxpY2F0aW9uL2pzb24nIFwKICAgICAgLUggIlgtSGVsaXgtSm9iLVRv
+a2VuOiAkSGVsaXhfSm9iVG9rZW4iIFwKICAgICAgLUggJ0NvbnRlbnQtTGVu
+Z3RoOiAwJyBcCiAgICAgIC1YIFBPU1QgLUcgImh0dHBzOi8vaGVsaXguZG90
+Lm5ldC9hcGkvMjAxOC0wMy0xNC90ZWxlbWV0cnkvam9iL2J1aWxkIiBcCiAg
+ICAgIC0tZGF0YS11cmxlbmNvZGUgImJ1aWxkVXJpPSRCdWlsZFVyaSJgCiAg
+ICBjdXJsU3RhdHVzPSQ/CgogICAgaWYgWyAkY3VybFN0YXR1cyAtZXEgMCBd
+OyB0aGVuCiAgICAgIGlmIFsgJGN1cmxSZXN1bHQgLWd0IDI5OSBdIHx8IFsg
+JGN1cmxSZXN1bHQgLWx0IDIwMCBdOyB0aGVuCiAgICAgICAgY3VybFN0YXR1
+cz0kY3VybFJlc3VsdAogICAgICBmaQogICAgZmkKCiAgICBjdXJsUmVzdWx0
+PWBjYXQgJHJlc2AKCiAgICAjIHZhbGlkYXRlIHN0YXR1cyBvZiBjdXJsIGNv
+bW1hbmQKICAgIGlmIFsgJGN1cmxTdGF0dXMgLW5lIDAgXTsgdGhlbgogICAg
+ICBlY2hvICJGYWlsZWQgdG8gU2VuZCBCdWlsZCBTdGFydCBpbmZvcm1hdGlv
+biIKICAgICAgdnN0c0xvZ091dHB1dD0idnNvW3Rhc2subG9naXNzdWUgdHlw
+ZT1lcnJvcjtzb3VyY2VwYXRoPXRlbGVtZXRyeS9idWlsZC9zdGFydC5zaDtj
+b2RlPTE7XUZhaWxlZCB0byBTZW5kIEJ1aWxkIFN0YXJ0IGluZm9ybWF0aW9u
+OiAkY3VybFN0YXR1cyIKICAgICAgZWNobyAiIyMkdnN0c0xvZ091dHB1dCIK
+ICAgICAgZXhpdCAxCiAgICBmaQoKICAgIGV4cG9ydCBIZWxpeF9Xb3JrSXRl
+bUlkPWBlY2hvICRjdXJsUmVzdWx0IHwgeGFyZ3MgZWNob2AgIyBTdHJpcCBR
+dW90ZXMKICAgIGVjaG8gIiMjdnNvW3Rhc2suc2V0dmFyaWFibGUgdmFyaWFi
+bGU9SGVsaXhfV29ya0l0ZW1JZF0kSGVsaXhfV29ya0l0ZW1JZCIKICBkaXNw
+bGF5TmFtZTogU2VuZCBVbml4IEJ1aWxkIFN0YXJ0IFRlbGVtZXRyeQogIGVu
+djoKICAgIEJ1aWxkVXJpOiAkKFN5c3RlbS5UYXNrRGVmaW5pdGlvbnNVcmkp
+JChTeXN0ZW0uVGVhbVByb2plY3QpL19idWlsZC9pbmRleD9idWlsZElkPSQo
+QnVpbGQuQnVpbGRJZCkmX2E9c3VtbWFyeQogICAgSGVsaXhfSm9iVG9rZW46
+ICQoSGVsaXhfSm9iVG9rZW4pCiAgY29uZGl0aW9uOiBhbmQoYWx3YXlzKCks
+IG5lKHZhcmlhYmxlc1snQWdlbnQuT3MnXSwgJ1dpbmRvd3NfTlQnKSkKICAK
+LSBwb3dlcnNoZWxsOiB8CiAgICAkam9iSW5mbyA9IFtwc2N1c3RvbW9iamVj
+dF1AewogICAgICBRdWV1ZUlkPSRlbnY6UXVldWVJZDsKICAgICAgU291cmNl
+PSRlbnY6U291cmNlOwogICAgICBUeXBlPSRlbnY6VHlwZTsKICAgICAgQnVp
+bGQ9JGVudjpCdWlsZDsKICAgICAgQXR0ZW1wdD0kZW52OkF0dGVtcHQ7CiAg
+ICAgIFByb3BlcnRpZXM9W3BzY3VzdG9tb2JqZWN0XUB7IG9wZXJhdGluZ1N5
+c3RlbT0kZW52Ok9wZXJhdGluZ1N5c3RlbTsgY29uZmlndXJhdGlvbj0kZW52
+OkNvbmZpZ3VyYXRpb24gfTsKICAgIH0KICAgIAogICAgJGpvYkluZm9Kc29u
+ID0gJGpvYkluZm8gfCBDb252ZXJ0VG8tSnNvbgoKICAgIGlmICgkZW52Okhl
+bGl4QXBpQWNjZXNzVG9rZW4pIHsKICAgICAgJGFjY2Vzc1Rva2VuUGFyYW1l
+dGVyPSI/YWNjZXNzX3Rva2VuPSQoJGVudjpIZWxpeEFwaUFjY2Vzc1Rva2Vu
+KSIKICAgIH0KICAgIFdyaXRlLUhvc3QgIkpvYiBJbmZvOiAkam9iSW5mb0pz
+b24iCiAgICAkam9iVG9rZW4gPSBJbnZva2UtUmVzdE1ldGhvZCAtVXJpICJo
+dHRwczovL2hlbGl4LmRvdC5uZXQvYXBpLzIwMTgtMDMtMTQvdGVsZW1ldHJ5
+L2pvYiQoJGFjY2Vzc1Rva2VuUGFyYW1ldGVyKSIgLU1ldGhvZCBQb3N0IC1D
+b250ZW50VHlwZSAiYXBwbGljYXRpb24vanNvbiIgLUJvZHkgJGpvYkluZm9K
+c29uCiAgICAkZW52OkhlbGl4X0pvYlRva2VuID0gJGpvYlRva2VuCiAgICBX
+cml0ZS1Ib3N0ICIjI3Zzb1t0YXNrLnNldHZhcmlhYmxlIHZhcmlhYmxlPUhl
+bGl4X0pvYlRva2VuO2lzc2VjcmV0PXRydWU7XSRlbnY6SGVsaXhfSm9iVG9r
+ZW4iCiAgZGlzcGxheU5hbWU6IFNlbmQgV2luZG93cyBKb2IgU3RhcnQgVGVs
+ZW1ldHJ5CiAgZW52OgogICAgSGVsaXhBcGlBY2Nlc3NUb2tlbjogJChIZWxp
+eEFwaUFjY2Vzc1Rva2VuKQogICAgU291cmNlOiAke3sgcGFyYW1ldGVycy5o
+ZWxpeFNvdXJjZSB9fQogICAgVHlwZTogJHt7IHBhcmFtZXRlcnMuaGVsaXhU
+eXBlIH19CiAgICBCdWlsZDogJChCdWlsZC5CdWlsZE51bWJlcikKICAgIFF1
+ZXVlSWQ6ICQoQWdlbnQuT3MpCiAgICBBdHRlbXB0OiAxCiAgICBPcGVyYXRp
+bmdTeXN0ZW06ICQoQWdlbnQuT3MpCiAgICBDb25maWd1cmF0aW9uOiAke3sg
+cGFyYW1ldGVycy5idWlsZENvbmZpZyB9fQogIGNvbmRpdGlvbjogYW5kKGFs
+d2F5cygpLCBlcSh2YXJpYWJsZXNbJ0FnZW50Lk9zJ10sICdXaW5kb3dzX05U
+JykpCi0gcG93ZXJzaGVsbDogfAogICAgJHdvcmtJdGVtSWQgPSBJbnZva2Ut
+UmVzdE1ldGhvZCAtVXJpICJodHRwczovL2hlbGl4LmRvdC5uZXQvYXBpLzIw
+MTgtMDMtMTQvdGVsZW1ldHJ5L2pvYi9idWlsZD9idWlsZFVyaT0kKFtOZXQu
+V2ViVXRpbGl0eV06OlVybEVuY29kZSgkZW52OkJ1aWxkVXJpKSkiIC1NZXRo
+b2QgUG9zdCAtQ29udGVudFR5cGUgImFwcGxpY2F0aW9uL2pzb24iIC1Cb2R5
+ICIiIGAKICAgICAgLUhlYWRlcnMgQHsgJ1gtSGVsaXgtSm9iLVRva2VuJz0k
+ZW52OkhlbGl4X0pvYlRva2VuIH0KICAKICAgICRlbnY6SGVsaXhfV29ya0l0
+ZW1JZCA9ICR3b3JrSXRlbUlkCiAgICBXcml0ZS1Ib3N0ICIjI3Zzb1t0YXNr
+LnNldHZhcmlhYmxlIHZhcmlhYmxlPUhlbGl4X1dvcmtJdGVtSWRdJGVudjpI
+ZWxpeF9Xb3JrSXRlbUlkIgogIGRpc3BsYXlOYW1lOiBTZW5kIFdpbmRvd3Mg
+QnVpbGQgU3RhcnQgVGVsZW1ldHJ5CiAgZW52OgogICAgQnVpbGRVcmk6ICQo
+U3lzdGVtLlRhc2tEZWZpbml0aW9uc1VyaSkkKFN5c3RlbS5UZWFtUHJvamVj
+dCkvX2J1aWxkL2luZGV4P2J1aWxkSWQ9JChCdWlsZC5CdWlsZElkKSZfYT1z
+dW1tYXJ5CiAgICBIZWxpeF9Kb2JUb2tlbjogJChIZWxpeF9Kb2JUb2tlbikK
+ICBjb25kaXRpb246IGFuZChhbHdheXMoKSwgZXEodmFyaWFibGVzWydBZ2Vu
+dC5PcyddLCAnV2luZG93c19OVCcpKQo=

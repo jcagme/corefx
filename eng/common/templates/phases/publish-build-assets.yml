@@ -1,46 +1,45 @@
-parameters:
-  dependsOn: ''
-  queue: {}
-  configuration: 'Debug'
-  condition: succeeded()
-  continueOnError: false
-  runAsPublic: false
-phases:
-  - phase: Asset_Registry_Publish
-    displayName: Publish to Build Asset Registry
-    dependsOn: ${{ parameters.dependsOn }}
-    queue: ${{ parameters.queue }}
-    variables:
-      _BuildConfig: ${{ parameters.configuration }}
-    steps:
-      - ${{ if and(eq(parameters.runAsPublic, 'false'), ne(variables['System.TeamProject'], 'public'), notin(variables['Build.Reason'], 'PullRequest')) }}:
-        - task: DownloadBuildArtifacts@0
-          displayName: Download artifact
-          inputs:
-            artifactName: AssetManifests
-            downloadPath: '$(Build.StagingDirectory)/Download'
-          condition: ${{ parameters.condition }}
-          continueOnError: ${{ parameters.continueOnError }}
-        - task: AzureKeyVault@1
-          inputs:
-            azureSubscription: 'DotNet-Engineering-Services_KeyVault'
-            KeyVaultName: EngKeyVault
-            SecretsFilter: 'MaestroAccessToken'
-          condition: ${{ parameters.condition }}
-          continueOnError: ${{ parameters.continueOnError }}
-        - script: eng\common\publishbuildassets.cmd
-            -configuration $(_BuildConfig)
-            /p:ManifestsPath='$(Build.StagingDirectory)/Download/AssetManifests'
-            /p:BuildAssetRegistryToken=$(MaestroAccessToken)
-            /p:MaestroApiEndpoint=https://maestro-prod.westus2.cloudapp.azure.com
-          displayName: Publish Build Assets
-          condition: ${{ parameters.condition }}
-          continueOnError: ${{ parameters.continueOnError }}
-        - task: PublishBuildArtifacts@1
-          displayName: Publish Logs to VSTS
-          inputs:
-            PathtoPublish: '$(Build.SourcesDirectory)/artifacts/log/$(_BuildConfig)'
-            PublishLocation: Container
-            ArtifactName: $(Agent.Os)_Asset_Registry_Publish
-          continueOnError: true
-          condition: always()
+cGFyYW1ldGVyczoKICBkZXBlbmRzT246ICcnCiAgcXVldWU6IHt9CiAgY29u
+ZmlndXJhdGlvbjogJ0RlYnVnJwogIGNvbmRpdGlvbjogc3VjY2VlZGVkKCkK
+ICBjb250aW51ZU9uRXJyb3I6IGZhbHNlCiAgcnVuQXNQdWJsaWM6IGZhbHNl
+CnBoYXNlczoKICAtIHBoYXNlOiBBc3NldF9SZWdpc3RyeV9QdWJsaXNoCiAg
+ICBkaXNwbGF5TmFtZTogUHVibGlzaCB0byBCdWlsZCBBc3NldCBSZWdpc3Ry
+eQogICAgZGVwZW5kc09uOiAke3sgcGFyYW1ldGVycy5kZXBlbmRzT24gfX0K
+ICAgIHF1ZXVlOiAke3sgcGFyYW1ldGVycy5xdWV1ZSB9fQogICAgdmFyaWFi
+bGVzOgogICAgICBfQnVpbGRDb25maWc6ICR7eyBwYXJhbWV0ZXJzLmNvbmZp
+Z3VyYXRpb24gfX0KICAgIHN0ZXBzOgogICAgICAtICR7eyBpZiBhbmQoZXEo
+cGFyYW1ldGVycy5ydW5Bc1B1YmxpYywgJ2ZhbHNlJyksIG5lKHZhcmlhYmxl
+c1snU3lzdGVtLlRlYW1Qcm9qZWN0J10sICdwdWJsaWMnKSwgbm90aW4odmFy
+aWFibGVzWydCdWlsZC5SZWFzb24nXSwgJ1B1bGxSZXF1ZXN0JykpIH19Ogog
+ICAgICAgIC0gdGFzazogRG93bmxvYWRCdWlsZEFydGlmYWN0c0AwCiAgICAg
+ICAgICBkaXNwbGF5TmFtZTogRG93bmxvYWQgYXJ0aWZhY3QKICAgICAgICAg
+IGlucHV0czoKICAgICAgICAgICAgYXJ0aWZhY3ROYW1lOiBBc3NldE1hbmlm
+ZXN0cwogICAgICAgICAgICBkb3dubG9hZFBhdGg6ICckKEJ1aWxkLlN0YWdp
+bmdEaXJlY3RvcnkpL0Rvd25sb2FkJwogICAgICAgICAgY29uZGl0aW9uOiAk
+e3sgcGFyYW1ldGVycy5jb25kaXRpb24gfX0KICAgICAgICAgIGNvbnRpbnVl
+T25FcnJvcjogJHt7IHBhcmFtZXRlcnMuY29udGludWVPbkVycm9yIH19CiAg
+ICAgICAgLSB0YXNrOiBBenVyZUtleVZhdWx0QDEKICAgICAgICAgIGlucHV0
+czoKICAgICAgICAgICAgYXp1cmVTdWJzY3JpcHRpb246ICdEb3ROZXQtRW5n
+aW5lZXJpbmctU2VydmljZXNfS2V5VmF1bHQnCiAgICAgICAgICAgIEtleVZh
+dWx0TmFtZTogRW5nS2V5VmF1bHQKICAgICAgICAgICAgU2VjcmV0c0ZpbHRl
+cjogJ01hZXN0cm9BY2Nlc3NUb2tlbicKICAgICAgICAgIGNvbmRpdGlvbjog
+JHt7IHBhcmFtZXRlcnMuY29uZGl0aW9uIH19CiAgICAgICAgICBjb250aW51
+ZU9uRXJyb3I6ICR7eyBwYXJhbWV0ZXJzLmNvbnRpbnVlT25FcnJvciB9fQog
+ICAgICAgIC0gc2NyaXB0OiBlbmdcY29tbW9uXHB1Ymxpc2hidWlsZGFzc2V0
+cy5jbWQKICAgICAgICAgICAgLWNvbmZpZ3VyYXRpb24gJChfQnVpbGRDb25m
+aWcpCiAgICAgICAgICAgIC9wOk1hbmlmZXN0c1BhdGg9JyQoQnVpbGQuU3Rh
+Z2luZ0RpcmVjdG9yeSkvRG93bmxvYWQvQXNzZXRNYW5pZmVzdHMnCiAgICAg
+ICAgICAgIC9wOkJ1aWxkQXNzZXRSZWdpc3RyeVRva2VuPSQoTWFlc3Ryb0Fj
+Y2Vzc1Rva2VuKQogICAgICAgICAgICAvcDpNYWVzdHJvQXBpRW5kcG9pbnQ9
+aHR0cHM6Ly9tYWVzdHJvLXByb2Qud2VzdHVzMi5jbG91ZGFwcC5henVyZS5j
+b20KICAgICAgICAgIGRpc3BsYXlOYW1lOiBQdWJsaXNoIEJ1aWxkIEFzc2V0
+cwogICAgICAgICAgY29uZGl0aW9uOiAke3sgcGFyYW1ldGVycy5jb25kaXRp
+b24gfX0KICAgICAgICAgIGNvbnRpbnVlT25FcnJvcjogJHt7IHBhcmFtZXRl
+cnMuY29udGludWVPbkVycm9yIH19CiAgICAgICAgLSB0YXNrOiBQdWJsaXNo
+QnVpbGRBcnRpZmFjdHNAMQogICAgICAgICAgZGlzcGxheU5hbWU6IFB1Ymxp
+c2ggTG9ncyB0byBWU1RTCiAgICAgICAgICBpbnB1dHM6CiAgICAgICAgICAg
+IFBhdGh0b1B1Ymxpc2g6ICckKEJ1aWxkLlNvdXJjZXNEaXJlY3RvcnkpL2Fy
+dGlmYWN0cy9sb2cvJChfQnVpbGRDb25maWcpJwogICAgICAgICAgICBQdWJs
+aXNoTG9jYXRpb246IENvbnRhaW5lcgogICAgICAgICAgICBBcnRpZmFjdE5h
+bWU6ICQoQWdlbnQuT3MpX0Fzc2V0X1JlZ2lzdHJ5X1B1Ymxpc2gKICAgICAg
+ICAgIGNvbnRpbnVlT25FcnJvcjogdHJ1ZQogICAgICAgICAgY29uZGl0aW9u
+OiBhbHdheXMoKQo=

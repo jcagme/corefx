@@ -1,67 +1,50 @@
-parameters:
-  helixSource: 'undefined_defaulted_in_telemetry.yml'
-  helixType: 'undefined_defaulted_in_telemetry.yml'
-
-steps:
-- bash: |
-    if [ "$AGENT_JOBSTATUS" = "Succeeded" ] || [ "$AGENT_JOBSTATUS" = "PartiallySucceeded" ]; then
-      errorCount=0
-    else
-      errorCount=1
-    fi
-    warningCount=0
-
-    # create a temporary file for curl output
-    res=`mktemp`
-
-    curlResult=`
-      curl --verbose --output $res --write-out "%{http_code}"\
-      -H 'Content-Type: application/json' \
-      -H "X-Helix-Job-Token: $Helix_JobToken" \
-      -H 'Content-Length: 0' \
-      -X POST -G "https://helix.dot.net/api/2018-03-14/telemetry/job/build/$Helix_WorkItemId/finish" \
-      --data-urlencode "errorCount=$errorCount" \
-      --data-urlencode "warningCount=$warningCount"`
-    curlStatus=$?
-
-    if [ $curlStatus -eq 0 ]; then
-      if [ $curlResult -gt 299 ] || [ $curlResult -lt 200 ]; then
-        curlStatus=$curlResult
-      fi
-    fi
-
-    if [ $curlStatus -ne 0 ]; then
-      echo "Failed to Send Build Finish information"
-      vstsLogOutput="vso[task.logissue type=error;sourcepath=templates/steps/telemetry-end.yml;code=1;]Failed to Send Build Finish information: $curlStatus"
-      echo "##$vstsLogOutput"
-      exit 1
-    fi
-  displayName: Send Unix Build End Telemetry
-  env:
-    # defined via VSTS variables in start-job.sh
-    Helix_JobToken: $(Helix_JobToken)
-    Helix_WorkItemId: $(Helix_WorkItemId)
-  condition: and(always(), ne(variables['Agent.Os'], 'Windows_NT'))
-- powershell: |
-    if (($env:Agent_JobStatus -eq 'Succeeded') -or ($env:Agent_JobStatus -eq 'PartiallySucceeded')) {
-      $ErrorCount = 0
-    } else {
-      $ErrorCount = 1
-    }
-    $WarningCount = 0
-
-    try {
-      Invoke-RestMethod -Uri "https://helix.dot.net/api/2018-03-14/telemetry/job/build/$env:Helix_WorkItemId/finish?errorCount=$ErrorCount&warningCount=$WarningCount" -Method Post -ContentType "application/json" -Body "" `
-        -Headers @{ 'X-Helix-Job-Token'=$env:Helix_JobToken }
-    }
-    catch {
-      Write-Error $_
-      Write-Error $_.Exception
-      exit 1
-    }
-  displayName: Send Windows Build End Telemetry
-  env:
-    # defined via VSTS variables in start-job.ps1
-    Helix_JobToken: $(Helix_JobToken)
-    Helix_WorkItemId: $(Helix_WorkItemId)
-  condition: and(always(),eq(variables['Agent.Os'], 'Windows_NT'))
+c3RlcHM6Ci0gYmFzaDogfAogICAgaWYgWyAiJEFHRU5UX0pPQlNUQVRVUyIg
+PSAiU3VjY2VlZGVkIiBdIHx8IFsgIiRBR0VOVF9KT0JTVEFUVVMiID0gIlBh
+cnRpYWxseVN1Y2NlZWRlZCIgXTsgdGhlbgogICAgICBlcnJvckNvdW50PTAK
+ICAgIGVsc2UKICAgICAgZXJyb3JDb3VudD0xCiAgICBmaQogICAgd2Fybmlu
+Z0NvdW50PTAKCiAgICAjIGNyZWF0ZSBhIHRlbXBvcmFyeSBmaWxlIGZvciBj
+dXJsIG91dHB1dAogICAgcmVzPWBta3RlbXBgCgogICAgY3VybFJlc3VsdD1g
+CiAgICAgIGN1cmwgLS12ZXJib3NlIC0tb3V0cHV0ICRyZXMgLS13cml0ZS1v
+dXQgIiV7aHR0cF9jb2RlfSJcCiAgICAgIC1IICdDb250ZW50LVR5cGU6IGFw
+cGxpY2F0aW9uL2pzb24nIFwKICAgICAgLUggIlgtSGVsaXgtSm9iLVRva2Vu
+OiAkSGVsaXhfSm9iVG9rZW4iIFwKICAgICAgLUggJ0NvbnRlbnQtTGVuZ3Ro
+OiAwJyBcCiAgICAgIC1YIFBPU1QgLUcgImh0dHBzOi8vaGVsaXguZG90Lm5l
+dC9hcGkvMjAxOC0wMy0xNC90ZWxlbWV0cnkvam9iL2J1aWxkLyRIZWxpeF9X
+b3JrSXRlbUlkL2ZpbmlzaCIgXAogICAgICAtLWRhdGEtdXJsZW5jb2RlICJl
+cnJvckNvdW50PSRlcnJvckNvdW50IiBcCiAgICAgIC0tZGF0YS11cmxlbmNv
+ZGUgIndhcm5pbmdDb3VudD0kd2FybmluZ0NvdW50ImAKICAgIGN1cmxTdGF0
+dXM9JD8KCiAgICBpZiBbICRjdXJsU3RhdHVzIC1lcSAwIF07IHRoZW4KICAg
+ICAgaWYgWyAkY3VybFJlc3VsdCAtZ3QgMjk5IF0gfHwgWyAkY3VybFJlc3Vs
+dCAtbHQgMjAwIF07IHRoZW4KICAgICAgICBjdXJsU3RhdHVzPSRjdXJsUmVz
+dWx0CiAgICAgIGZpCiAgICBmaQoKICAgIGlmIFsgJGN1cmxTdGF0dXMgLW5l
+IDAgXTsgdGhlbgogICAgICBlY2hvICJGYWlsZWQgdG8gU2VuZCBCdWlsZCBG
+aW5pc2ggaW5mb3JtYXRpb24iCiAgICAgIHZzdHNMb2dPdXRwdXQ9InZzb1t0
+YXNrLmxvZ2lzc3VlIHR5cGU9ZXJyb3I7c291cmNlcGF0aD10ZW1wbGF0ZXMv
+c3RlcHMvdGVsZW1ldHJ5LWVuZC55bWw7Y29kZT0xO11GYWlsZWQgdG8gU2Vu
+ZCBCdWlsZCBGaW5pc2ggaW5mb3JtYXRpb246ICRjdXJsU3RhdHVzIgogICAg
+ICBlY2hvICIjIyR2c3RzTG9nT3V0cHV0IgogICAgICBleGl0IDEKICAgIGZp
+CiAgZGlzcGxheU5hbWU6IFNlbmQgVW5peCBCdWlsZCBFbmQgVGVsZW1ldHJ5
+CiAgZW52OgogICAgIyBkZWZpbmVkIHZpYSBWU1RTIHZhcmlhYmxlcyBpbiBz
+dGFydC1qb2Iuc2gKICAgIEhlbGl4X0pvYlRva2VuOiAkKEhlbGl4X0pvYlRv
+a2VuKQogICAgSGVsaXhfV29ya0l0ZW1JZDogJChIZWxpeF9Xb3JrSXRlbUlk
+KQogIGNvbmRpdGlvbjogYW5kKGFsd2F5cygpLCBuZSh2YXJpYWJsZXNbJ0Fn
+ZW50Lk9zJ10sICdXaW5kb3dzX05UJykpCi0gcG93ZXJzaGVsbDogfAogICAg
+aWYgKCgkZW52OkFnZW50X0pvYlN0YXR1cyAtZXEgJ1N1Y2NlZWRlZCcpIC1v
+ciAoJGVudjpBZ2VudF9Kb2JTdGF0dXMgLWVxICdQYXJ0aWFsbHlTdWNjZWVk
+ZWQnKSkgewogICAgICAkRXJyb3JDb3VudCA9IDAKICAgIH0gZWxzZSB7CiAg
+ICAgICRFcnJvckNvdW50ID0gMQogICAgfQogICAgJFdhcm5pbmdDb3VudCA9
+IDAKCiAgICB0cnkgewogICAgICBJbnZva2UtUmVzdE1ldGhvZCAtVXJpICJo
+dHRwczovL2hlbGl4LmRvdC5uZXQvYXBpLzIwMTgtMDMtMTQvdGVsZW1ldHJ5
+L2pvYi9idWlsZC8kZW52OkhlbGl4X1dvcmtJdGVtSWQvZmluaXNoP2Vycm9y
+Q291bnQ9JEVycm9yQ291bnQmd2FybmluZ0NvdW50PSRXYXJuaW5nQ291bnQi
+IC1NZXRob2QgUG9zdCAtQ29udGVudFR5cGUgImFwcGxpY2F0aW9uL2pzb24i
+IC1Cb2R5ICIiIGAKICAgICAgICAtSGVhZGVycyBAeyAnWC1IZWxpeC1Kb2It
+VG9rZW4nPSRlbnY6SGVsaXhfSm9iVG9rZW4gfQogICAgfQogICAgY2F0Y2gg
+ewogICAgICBXcml0ZS1FcnJvciAkXwogICAgICBXcml0ZS1FcnJvciAkXy5F
+eGNlcHRpb24KICAgICAgZXhpdCAxCiAgICB9CiAgZGlzcGxheU5hbWU6IFNl
+bmQgV2luZG93cyBCdWlsZCBFbmQgVGVsZW1ldHJ5CiAgZW52OgogICAgIyBk
+ZWZpbmVkIHZpYSBWU1RTIHZhcmlhYmxlcyBpbiBzdGFydC1qb2IucHMxCiAg
+ICBIZWxpeF9Kb2JUb2tlbjogJChIZWxpeF9Kb2JUb2tlbikKICAgIEhlbGl4
+X1dvcmtJdGVtSWQ6ICQoSGVsaXhfV29ya0l0ZW1JZCkKICBjb25kaXRpb246
+IGFuZChhbHdheXMoKSxlcSh2YXJpYWJsZXNbJ0FnZW50Lk9zJ10sICdXaW5k
+b3dzX05UJykpCg==

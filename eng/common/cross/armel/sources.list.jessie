@@ -1,3 +1,4 @@
-# Debian (jessie)   # Stable
-deb http://ftp.debian.org/debian/ jessie main contrib non-free
-deb-src http://ftp.debian.org/debian/ jessie main contrib non-free
+IyBEZWJpYW4gKGplc3NpZSkgICAjIFN0YWJsZQpkZWIgaHR0cDovL2Z0cC5k
+ZWJpYW4ub3JnL2RlYmlhbi8gamVzc2llIG1haW4gY29udHJpYiBub24tZnJl
+ZQpkZWItc3JjIGh0dHA6Ly9mdHAuZGViaWFuLm9yZy9kZWJpYW4vIGplc3Np
+ZSBtYWluIGNvbnRyaWIgbm9uLWZyZWUK

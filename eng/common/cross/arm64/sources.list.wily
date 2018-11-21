@@ -1,11 +1,15 @@
-deb http://ports.ubuntu.com/ubuntu-ports/ wily main restricted universe
-deb-src http://ports.ubuntu.com/ubuntu-ports/ wily main restricted universe
-
-deb http://ports.ubuntu.com/ubuntu-ports/ wily-updates main restricted universe
-deb-src http://ports.ubuntu.com/ubuntu-ports/ wily-updates main restricted universe
-
-deb http://ports.ubuntu.com/ubuntu-ports/ wily-backports main restricted
-deb-src http://ports.ubuntu.com/ubuntu-ports/ wily-backports main restricted
-
-deb http://ports.ubuntu.com/ubuntu-ports/ wily-security main restricted universe multiverse
-deb-src http://ports.ubuntu.com/ubuntu-ports/ wily-security main restricted universe multiverse
+ZGViIGh0dHA6Ly9wb3J0cy51YnVudHUuY29tL3VidW50dS1wb3J0cy8gd2ls
+eSBtYWluIHJlc3RyaWN0ZWQgdW5pdmVyc2UKZGViLXNyYyBodHRwOi8vcG9y
+dHMudWJ1bnR1LmNvbS91YnVudHUtcG9ydHMvIHdpbHkgbWFpbiByZXN0cmlj
+dGVkIHVuaXZlcnNlCgpkZWIgaHR0cDovL3BvcnRzLnVidW50dS5jb20vdWJ1
+bnR1LXBvcnRzLyB3aWx5LXVwZGF0ZXMgbWFpbiByZXN0cmljdGVkIHVuaXZl
+cnNlCmRlYi1zcmMgaHR0cDovL3BvcnRzLnVidW50dS5jb20vdWJ1bnR1LXBv
+cnRzLyB3aWx5LXVwZGF0ZXMgbWFpbiByZXN0cmljdGVkIHVuaXZlcnNlCgpk
+ZWIgaHR0cDovL3BvcnRzLnVidW50dS5jb20vdWJ1bnR1LXBvcnRzLyB3aWx5
+LWJhY2twb3J0cyBtYWluIHJlc3RyaWN0ZWQKZGViLXNyYyBodHRwOi8vcG9y
+dHMudWJ1bnR1LmNvbS91YnVudHUtcG9ydHMvIHdpbHktYmFja3BvcnRzIG1h
+aW4gcmVzdHJpY3RlZAoKZGViIGh0dHA6Ly9wb3J0cy51YnVudHUuY29tL3Vi
+dW50dS1wb3J0cy8gd2lseS1zZWN1cml0eSBtYWluIHJlc3RyaWN0ZWQgdW5p
+dmVyc2UgbXVsdGl2ZXJzZQpkZWItc3JjIGh0dHA6Ly9wb3J0cy51YnVudHUu
+Y29tL3VidW50dS1wb3J0cy8gd2lseS1zZWN1cml0eSBtYWluIHJlc3RyaWN0
+ZWQgdW5pdmVyc2UgbXVsdGl2ZXJzZQ==

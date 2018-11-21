@@ -1,11 +1,15 @@
-deb http://ports.ubuntu.com/ubuntu-ports/ zesty main restricted universe
-deb-src http://ports.ubuntu.com/ubuntu-ports/ zesty main restricted universe
-
-deb http://ports.ubuntu.com/ubuntu-ports/ zesty-updates main restricted universe
-deb-src http://ports.ubuntu.com/ubuntu-ports/ zesty-updates main restricted universe
-
-deb http://ports.ubuntu.com/ubuntu-ports/ zesty-backports main restricted
-deb-src http://ports.ubuntu.com/ubuntu-ports/ zesty-backports main restricted
-
-deb http://ports.ubuntu.com/ubuntu-ports/ zesty-security main restricted universe multiverse
-deb-src http://ports.ubuntu.com/ubuntu-ports/ zesty-security main restricted universe multiverse
+ZGViIGh0dHA6Ly9wb3J0cy51YnVudHUuY29tL3VidW50dS1wb3J0cy8gemVz
+dHkgbWFpbiByZXN0cmljdGVkIHVuaXZlcnNlCmRlYi1zcmMgaHR0cDovL3Bv
+cnRzLnVidW50dS5jb20vdWJ1bnR1LXBvcnRzLyB6ZXN0eSBtYWluIHJlc3Ry
+aWN0ZWQgdW5pdmVyc2UKCmRlYiBodHRwOi8vcG9ydHMudWJ1bnR1LmNvbS91
+YnVudHUtcG9ydHMvIHplc3R5LXVwZGF0ZXMgbWFpbiByZXN0cmljdGVkIHVu
+aXZlcnNlCmRlYi1zcmMgaHR0cDovL3BvcnRzLnVidW50dS5jb20vdWJ1bnR1
+LXBvcnRzLyB6ZXN0eS11cGRhdGVzIG1haW4gcmVzdHJpY3RlZCB1bml2ZXJz
+ZQoKZGViIGh0dHA6Ly9wb3J0cy51YnVudHUuY29tL3VidW50dS1wb3J0cy8g
+emVzdHktYmFja3BvcnRzIG1haW4gcmVzdHJpY3RlZApkZWItc3JjIGh0dHA6
+Ly9wb3J0cy51YnVudHUuY29tL3VidW50dS1wb3J0cy8gemVzdHktYmFja3Bv
+cnRzIG1haW4gcmVzdHJpY3RlZAoKZGViIGh0dHA6Ly9wb3J0cy51YnVudHUu
+Y29tL3VidW50dS1wb3J0cy8gemVzdHktc2VjdXJpdHkgbWFpbiByZXN0cmlj
+dGVkIHVuaXZlcnNlIG11bHRpdmVyc2UKZGViLXNyYyBodHRwOi8vcG9ydHMu
+dWJ1bnR1LmNvbS91YnVudHUtcG9ydHMvIHplc3R5LXNlY3VyaXR5IG1haW4g
+cmVzdHJpY3RlZCB1bml2ZXJzZSBtdWx0aXZlcnNlCg==

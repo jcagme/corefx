@@ -1,11 +1,15 @@
-deb http://archive.ubuntu.com/ubuntu/ trusty main restricted universe
-deb-src http://archive.ubuntu.com/ubuntu/ trusty main restricted universe
-
-deb http://archive.ubuntu.com/ubuntu/ trusty-updates main restricted universe
-deb-src http://archive.ubuntu.com/ubuntu/ trusty-updates main restricted universe
-
-deb http://archive.ubuntu.com/ubuntu/ trusty-backports main restricted
-deb-src http://archive.ubuntu.com/ubuntu/ trusty-backports main restricted
-
-deb http://archive.ubuntu.com/ubuntu/ trusty-security main restricted universe multiverse
-deb-src http://archive.ubuntu.com/ubuntu/ trusty-security main restricted universe multiverse
+ZGViIGh0dHA6Ly9hcmNoaXZlLnVidW50dS5jb20vdWJ1bnR1LyB0cnVzdHkg
+bWFpbiByZXN0cmljdGVkIHVuaXZlcnNlCmRlYi1zcmMgaHR0cDovL2FyY2hp
+dmUudWJ1bnR1LmNvbS91YnVudHUvIHRydXN0eSBtYWluIHJlc3RyaWN0ZWQg
+dW5pdmVyc2UKCmRlYiBodHRwOi8vYXJjaGl2ZS51YnVudHUuY29tL3VidW50
+dS8gdHJ1c3R5LXVwZGF0ZXMgbWFpbiByZXN0cmljdGVkIHVuaXZlcnNlCmRl
+Yi1zcmMgaHR0cDovL2FyY2hpdmUudWJ1bnR1LmNvbS91YnVudHUvIHRydXN0
+eS11cGRhdGVzIG1haW4gcmVzdHJpY3RlZCB1bml2ZXJzZQoKZGViIGh0dHA6
+Ly9hcmNoaXZlLnVidW50dS5jb20vdWJ1bnR1LyB0cnVzdHktYmFja3BvcnRz
+IG1haW4gcmVzdHJpY3RlZApkZWItc3JjIGh0dHA6Ly9hcmNoaXZlLnVidW50
+dS5jb20vdWJ1bnR1LyB0cnVzdHktYmFja3BvcnRzIG1haW4gcmVzdHJpY3Rl
+ZAoKZGViIGh0dHA6Ly9hcmNoaXZlLnVidW50dS5jb20vdWJ1bnR1LyB0cnVz
+dHktc2VjdXJpdHkgbWFpbiByZXN0cmljdGVkIHVuaXZlcnNlIG11bHRpdmVy
+c2UKZGViLXNyYyBodHRwOi8vYXJjaGl2ZS51YnVudHUuY29tL3VidW50dS8g
+dHJ1c3R5LXNlY3VyaXR5IG1haW4gcmVzdHJpY3RlZCB1bml2ZXJzZSBtdWx0
+aXZlcnNlCg==

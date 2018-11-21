@@ -1,15 +1,16 @@
-<Project Sdk="Microsoft.DotNet.Helix.Sdk">
-
-  <ItemGroup>
-    <HelixCorrelationPayload Include="$(CorrelationPayloadDirectory)">
-      <PayloadDirectory>%(Identity)</PayloadDirectory>
-    </HelixCorrelationPayload>
-  </ItemGroup>
-
-  <ItemGroup>
-    <HelixWorkItem Include="WorkItem">
-      <PayloadDirectory>$(WorkItemDirectory)</PayloadDirectory>
-      <Command>$(WorkItemCommand)</Command>
-    </HelixWorkItem>
-  </ItemGroup>
-</Project>
+PFByb2plY3QgU2RrPSJNaWNyb3NvZnQuRG90TmV0LkhlbGl4LlNkayIgRGVm
+YXVsdFRhcmdldHM9IlRlc3QiPgoKICA8UHJvcGVydHlHcm91cD4KICAgIDxM
+YW5ndWFnZT5tc2J1aWxkPC9MYW5ndWFnZT4KICA8L1Byb3BlcnR5R3JvdXA+
+CgogIDxJdGVtR3JvdXA+CiAgICA8SGVsaXhDb3JyZWxhdGlvblBheWxvYWQg
+SW5jbHVkZT0iJChDb3JyZWxhdGlvblBheWxvYWREaXJlY3RvcnkpIj4KICAg
+ICAgPFBheWxvYWREaXJlY3Rvcnk+JShJZGVudGl0eSk8L1BheWxvYWREaXJl
+Y3Rvcnk+CiAgICA8L0hlbGl4Q29ycmVsYXRpb25QYXlsb2FkPgogIDwvSXRl
+bUdyb3VwPgoKICA8SXRlbUdyb3VwPgogICAgPEhlbGl4V29ya0l0ZW0gSW5j
+bHVkZT0iV29ya0l0ZW0iIENvbmRpdGlvbj0iJyQoV29ya0l0ZW1EaXJlY3Rv
+cnkpJyAhPSAnJyI+CiAgICAgIDxQYXlsb2FkRGlyZWN0b3J5PiQoV29ya0l0
+ZW1EaXJlY3RvcnkpPC9QYXlsb2FkRGlyZWN0b3J5PgogICAgICA8Q29tbWFu
+ZD4kKFdvcmtJdGVtQ29tbWFuZCk8L0NvbW1hbmQ+CiAgICA8L0hlbGl4V29y
+a0l0ZW0+CiAgPC9JdGVtR3JvdXA+CgogIDxJdGVtR3JvdXA+CiAgICA8WFVu
+aXRQcm9qZWN0IEluY2x1ZGU9IiQoWFVuaXRQcm9qZWN0cy5TcGxpdCgnOycp
+KSI+CiAgICAgIDxBcmd1bWVudHMgLz4KICAgIDwvWFVuaXRQcm9qZWN0Pgog
+IDwvSXRlbUdyb3VwPgo8L1Byb2plY3Q+Cg==

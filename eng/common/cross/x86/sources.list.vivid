@@ -1,11 +1,14 @@
-deb http://archive.ubuntu.com/ubuntu/ vivid main restricted universe
-deb-src http://archive.ubuntu.com/ubuntu/ vivid main restricted universe
-
-deb http://archive.ubuntu.com/ubuntu/ vivid-updates main restricted universe
-deb-src http://archive.ubuntu.com/ubuntu/ vivid-updates main restricted universe
-
-deb http://archive.ubuntu.com/ubuntu/ vivid-backports main restricted
-deb-src http://archive.ubuntu.com/ubuntu/ vivid-backports main restricted
-
-deb http://archive.ubuntu.com/ubuntu/ vivid-security main restricted universe multiverse
-deb-src http://archive.ubuntu.com/ubuntu/ vivid-security main restricted universe multiverse
+ZGViIGh0dHA6Ly9hcmNoaXZlLnVidW50dS5jb20vdWJ1bnR1LyB2aXZpZCBt
+YWluIHJlc3RyaWN0ZWQgdW5pdmVyc2UKZGViLXNyYyBodHRwOi8vYXJjaGl2
+ZS51YnVudHUuY29tL3VidW50dS8gdml2aWQgbWFpbiByZXN0cmljdGVkIHVu
+aXZlcnNlCgpkZWIgaHR0cDovL2FyY2hpdmUudWJ1bnR1LmNvbS91YnVudHUv
+IHZpdmlkLXVwZGF0ZXMgbWFpbiByZXN0cmljdGVkIHVuaXZlcnNlCmRlYi1z
+cmMgaHR0cDovL2FyY2hpdmUudWJ1bnR1LmNvbS91YnVudHUvIHZpdmlkLXVw
+ZGF0ZXMgbWFpbiByZXN0cmljdGVkIHVuaXZlcnNlCgpkZWIgaHR0cDovL2Fy
+Y2hpdmUudWJ1bnR1LmNvbS91YnVudHUvIHZpdmlkLWJhY2twb3J0cyBtYWlu
+IHJlc3RyaWN0ZWQKZGViLXNyYyBodHRwOi8vYXJjaGl2ZS51YnVudHUuY29t
+L3VidW50dS8gdml2aWQtYmFja3BvcnRzIG1haW4gcmVzdHJpY3RlZAoKZGVi
+IGh0dHA6Ly9hcmNoaXZlLnVidW50dS5jb20vdWJ1bnR1LyB2aXZpZC1zZWN1
+cml0eSBtYWluIHJlc3RyaWN0ZWQgdW5pdmVyc2UgbXVsdGl2ZXJzZQpkZWIt
+c3JjIGh0dHA6Ly9hcmNoaXZlLnVidW50dS5jb20vdWJ1bnR1LyB2aXZpZC1z
+ZWN1cml0eSBtYWluIHJlc3RyaWN0ZWQgdW5pdmVyc2UgbXVsdGl2ZXJzZQo=

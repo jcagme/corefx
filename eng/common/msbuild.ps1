@@ -1,23 +1,11 @@
-[CmdletBinding(PositionalBinding=$false)]
-Param(
-  [string] $verbosity = "minimal",
-  [bool] $warnaserror = $true,
-  [bool] $nodereuse = $true,
-  [switch] $ci,
-  [switch] $prepareMachine,
-  [Parameter(ValueFromRemainingArguments=$true)][String[]]$extraArgs
-)
-
-. $PSScriptRoot\tools.ps1
-
-try {
-  InitializeTools
-  MSBuild @extraArgs
-  ExitWithExitCode $lastExitCode
-}
-catch {
-  Write-Host $_
-  Write-Host $_.Exception
-  Write-Host $_.ScriptStackTrace
-  ExitWithExitCode 1
-}
+W0NtZGxldEJpbmRpbmcoUG9zaXRpb25hbEJpbmRpbmc9JGZhbHNlKV0KUGFy
+YW0oCiAgW3N0cmluZ10gJHZlcmJvc2l0eSA9ICJtaW5pbWFsIiwKICBbYm9v
+bF0gJHdhcm5hc2Vycm9yID0gJHRydWUsCiAgW2Jvb2xdICRub2RlcmV1c2Ug
+PSAkdHJ1ZSwKICBbc3dpdGNoXSAkY2ksCiAgW3N3aXRjaF0gJHByZXBhcmVN
+YWNoaW5lLAogIFtQYXJhbWV0ZXIoVmFsdWVGcm9tUmVtYWluaW5nQXJndW1l
+bnRzPSR0cnVlKV1bU3RyaW5nW11dJGV4dHJhQXJncwopCgouICRQU1Njcmlw
+dFJvb3RcdG9vbHMucHMxCgp0cnkgewogIEluaXRpYWxpemVUb29scwogIE1T
+QnVpbGQgQGV4dHJhQXJncwogIEV4aXRXaXRoRXhpdENvZGUgJGxhc3RFeGl0
+Q29kZQp9CmNhdGNoIHsKICBXcml0ZS1Ib3N0ICRfCiAgV3JpdGUtSG9zdCAk
+Xy5FeGNlcHRpb24KICBXcml0ZS1Ib3N0ICRfLlNjcmlwdFN0YWNrVHJhY2UK
+ICBFeGl0V2l0aEV4aXRDb2RlIDEKfQo=

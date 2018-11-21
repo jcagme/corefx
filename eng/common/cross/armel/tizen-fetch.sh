@@ -1,171 +1,96 @@
-#!/usr/bin/env bash
-set -e
-
-if [[ -z "${VERBOSE// }" ]] || [ "$VERBOSE" -ne "$VERBOSE" ] 2>/dev/null; then
-	VERBOSE=0
-fi
-
-Log()
-{
-	if [ $VERBOSE -ge $1 ]; then
-		echo ${@:2}
-	fi
-}
-
-Inform()
-{
-	Log 1 -e "\x1B[0;34m$@\x1B[m"
-}
-
-Debug()
-{
-	Log 2 -e "\x1B[0;32m$@\x1B[m"
-}
-
-Error()
-{
-	>&2 Log 0 -e "\x1B[0;31m$@\x1B[m"
-}
-
-Fetch()
-{
-	URL=$1
-	FILE=$2
-	PROGRESS=$3
-	if [ $VERBOSE -ge 1 ] && [ $PROGRESS ]; then
-		CURL_OPT="--progress-bar"
-	else
-		CURL_OPT="--silent"
-	fi
-	curl $CURL_OPT $URL > $FILE
-}
-
-hash curl 2> /dev/null || { Error "Require 'curl' Aborting."; exit 1; }
-hash xmllint 2> /dev/null || { Error "Require 'xmllint' Aborting."; exit 1; }
-hash sha256sum 2> /dev/null || { Error "Require 'sha256sum' Aborting."; exit 1; }
-
-TMPDIR=$1
-if [ ! -d $TMPDIR ]; then
-	TMPDIR=./tizen_tmp
-	Debug "Create temporary directory : $TMPDIR"
-	mkdir -p $TMPDIR 
-fi
-
-TIZEN_URL=http://download.tizen.org/releases/milestone/tizen
-BUILD_XML=build.xml
-REPOMD_XML=repomd.xml
-PRIMARY_XML=primary.xml
-TARGET_URL="http://__not_initialized"
-
-Xpath_get()
-{
-	XPATH_RESULT=''
-	XPATH=$1
-	XML_FILE=$2
-	RESULT=$(xmllint --xpath $XPATH $XML_FILE)
-	if [[ -z ${RESULT// } ]]; then
-		Error "Can not find target from $XML_FILE"
-		Debug "Xpath = $XPATH"
-		exit 1
-	fi
-	XPATH_RESULT=$RESULT
-}
-
-fetch_tizen_pkgs_init()
-{
-	TARGET=$1
-	PROFILE=$2
-	Debug "Initialize TARGET=$TARGET, PROFILE=$PROFILE"
-
-	TMP_PKG_DIR=$TMPDIR/tizen_${PROFILE}_pkgs
-	if [ -d $TMP_PKG_DIR ]; then rm -rf $TMP_PKG_DIR; fi
-	mkdir -p $TMP_PKG_DIR
-
-	PKG_URL=$TIZEN_URL/$PROFILE/latest
-
-	BUILD_XML_URL=$PKG_URL/$BUILD_XML
-	TMP_BUILD=$TMP_PKG_DIR/$BUILD_XML
-	TMP_REPOMD=$TMP_PKG_DIR/$REPOMD_XML
-	TMP_PRIMARY=$TMP_PKG_DIR/$PRIMARY_XML
-	TMP_PRIMARYGZ=${TMP_PRIMARY}.gz
-
-	Fetch $BUILD_XML_URL $TMP_BUILD
-
-	Debug "fetch $BUILD_XML_URL to $TMP_BUILD"
-
-	TARGET_XPATH="//build/buildtargets/buildtarget[@name=\"$TARGET\"]/repo[@type=\"binary\"]/text()"
-	Xpath_get $TARGET_XPATH $TMP_BUILD
-	TARGET_PATH=$XPATH_RESULT
-	TARGET_URL=$PKG_URL/$TARGET_PATH
-
-	REPOMD_URL=$TARGET_URL/repodata/repomd.xml
-	PRIMARY_XPATH='string(//*[local-name()="data"][@type="primary"]/*[local-name()="location"]/@href)'
-
-	Fetch $REPOMD_URL $TMP_REPOMD
-
-	Debug "fetch $REPOMD_URL to $TMP_REPOMD"
-
-	Xpath_get $PRIMARY_XPATH $TMP_REPOMD
-	PRIMARY_XML_PATH=$XPATH_RESULT
-	PRIMARY_URL=$TARGET_URL/$PRIMARY_XML_PATH
-
-	Fetch $PRIMARY_URL $TMP_PRIMARYGZ
-
-	Debug "fetch $PRIMARY_URL to $TMP_PRIMARYGZ"
-
-	gunzip $TMP_PRIMARYGZ 
-
-	Debug "unzip $TMP_PRIMARYGZ to $TMP_PRIMARY" 
-}
-
-fetch_tizen_pkgs()
-{
-	ARCH=$1
-	PACKAGE_XPATH_TPL='string(//*[local-name()="metadata"]/*[local-name()="package"][*[local-name()="name"][text()="_PKG_"]][*[local-name()="arch"][text()="_ARCH_"]]/*[local-name()="location"]/@href)'
-
-	PACKAGE_CHECKSUM_XPATH_TPL='string(//*[local-name()="metadata"]/*[local-name()="package"][*[local-name()="name"][text()="_PKG_"]][*[local-name()="arch"][text()="_ARCH_"]]/*[local-name()="checksum"]/text())'
-
-	for pkg in ${@:2}
-	do
-		Inform "Fetching... $pkg"
-		XPATH=${PACKAGE_XPATH_TPL/_PKG_/$pkg}
-		XPATH=${XPATH/_ARCH_/$ARCH}
-		Xpath_get $XPATH $TMP_PRIMARY
-		PKG_PATH=$XPATH_RESULT
-
-		XPATH=${PACKAGE_CHECKSUM_XPATH_TPL/_PKG_/$pkg}
-		XPATH=${XPATH/_ARCH_/$ARCH}
-		Xpath_get $XPATH $TMP_PRIMARY
-		CHECKSUM=$XPATH_RESULT
-
-		PKG_URL=$TARGET_URL/$PKG_PATH
-		PKG_FILE=$(basename $PKG_PATH)
-		PKG_PATH=$TMPDIR/$PKG_FILE
-
-		Debug "Download $PKG_URL to $PKG_PATH"
-		Fetch $PKG_URL $PKG_PATH true
-
-		echo "$CHECKSUM $PKG_PATH" | sha256sum -c - > /dev/null
-		if [ $? -ne 0 ]; then
-			Error "Fail to fetch $PKG_URL to $PKG_PATH"
-			Debug "Checksum = $CHECKSUM"
-			exit 1
-		fi
-	done
-}
-
-Inform "Initialize arm base"
-fetch_tizen_pkgs_init standard base
-Inform "fetch common packages"
-fetch_tizen_pkgs armv7l gcc glibc glibc-devel libicu libicu-devel
-fetch_tizen_pkgs noarch linux-glibc-devel
-Inform "fetch coreclr packages"
-fetch_tizen_pkgs armv7l lldb lldb-devel libgcc libstdc++ libstdc++-devel libunwind libunwind-devel tizen-release lttng-ust-devel lttng-ust userspace-rcu-devel userspace-rcu
-Inform "fetch corefx packages"
-fetch_tizen_pkgs armv7l libcom_err libcom_err-devel zlib zlib-devel libopenssl libopenssl-devel krb5 krb5-devel libcurl libcurl-devel
-
-Inform "Initialize standard unified"
-fetch_tizen_pkgs_init standard unified
-Inform "fetch corefx packages"
-fetch_tizen_pkgs armv7l gssdp gssdp-devel
-
+IyEvdXNyL2Jpbi9lbnYgYmFzaApzZXQgLWUKCmlmIFtbIC16ICIke1ZFUkJP
+U0UvLyB9IiBdXSB8fCBbICIkVkVSQk9TRSIgLW5lICIkVkVSQk9TRSIgXSAy
+Pi9kZXYvbnVsbDsgdGhlbgoJVkVSQk9TRT0wCmZpCgpMb2coKQp7CglpZiBb
+ICRWRVJCT1NFIC1nZSAkMSBdOyB0aGVuCgkJZWNobyAke0A6Mn0KCWZpCn0K
+CkluZm9ybSgpCnsKCUxvZyAxIC1lICJceDFCWzA7MzRtJEBceDFCW20iCn0K
+CkRlYnVnKCkKewoJTG9nIDIgLWUgIlx4MUJbMDszMm0kQFx4MUJbbSIKfQoK
+RXJyb3IoKQp7Cgk+JjIgTG9nIDAgLWUgIlx4MUJbMDszMW0kQFx4MUJbbSIK
+fQoKRmV0Y2goKQp7CglVUkw9JDEKCUZJTEU9JDIKCVBST0dSRVNTPSQzCglp
+ZiBbICRWRVJCT1NFIC1nZSAxIF0gJiYgWyAkUFJPR1JFU1MgXTsgdGhlbgoJ
+CUNVUkxfT1BUPSItLXByb2dyZXNzLWJhciIKCWVsc2UKCQlDVVJMX09QVD0i
+LS1zaWxlbnQiCglmaQoJY3VybCAkQ1VSTF9PUFQgJFVSTCA+ICRGSUxFCn0K
+Cmhhc2ggY3VybCAyPiAvZGV2L251bGwgfHwgeyBFcnJvciAiUmVxdWlyZSAn
+Y3VybCcgQWJvcnRpbmcuIjsgZXhpdCAxOyB9Cmhhc2ggeG1sbGludCAyPiAv
+ZGV2L251bGwgfHwgeyBFcnJvciAiUmVxdWlyZSAneG1sbGludCcgQWJvcnRp
+bmcuIjsgZXhpdCAxOyB9Cmhhc2ggc2hhMjU2c3VtIDI+IC9kZXYvbnVsbCB8
+fCB7IEVycm9yICJSZXF1aXJlICdzaGEyNTZzdW0nIEFib3J0aW5nLiI7IGV4
+aXQgMTsgfQoKVE1QRElSPSQxCmlmIFsgISAtZCAkVE1QRElSIF07IHRoZW4K
+CVRNUERJUj0uL3RpemVuX3RtcAoJRGVidWcgIkNyZWF0ZSB0ZW1wb3Jhcnkg
+ZGlyZWN0b3J5IDogJFRNUERJUiIKCW1rZGlyIC1wICRUTVBESVIgCmZpCgpU
+SVpFTl9VUkw9aHR0cDovL2Rvd25sb2FkLnRpemVuLm9yZy9yZWxlYXNlcy9t
+aWxlc3RvbmUvdGl6ZW4KQlVJTERfWE1MPWJ1aWxkLnhtbApSRVBPTURfWE1M
+PXJlcG9tZC54bWwKUFJJTUFSWV9YTUw9cHJpbWFyeS54bWwKVEFSR0VUX1VS
+TD0iaHR0cDovL19fbm90X2luaXRpYWxpemVkIgoKWHBhdGhfZ2V0KCkKewoJ
+WFBBVEhfUkVTVUxUPScnCglYUEFUSD0kMQoJWE1MX0ZJTEU9JDIKCVJFU1VM
+VD0kKHhtbGxpbnQgLS14cGF0aCAkWFBBVEggJFhNTF9GSUxFKQoJaWYgW1sg
+LXogJHtSRVNVTFQvLyB9IF1dOyB0aGVuCgkJRXJyb3IgIkNhbiBub3QgZmlu
+ZCB0YXJnZXQgZnJvbSAkWE1MX0ZJTEUiCgkJRGVidWcgIlhwYXRoID0gJFhQ
+QVRIIgoJCWV4aXQgMQoJZmkKCVhQQVRIX1JFU1VMVD0kUkVTVUxUCn0KCmZl
+dGNoX3RpemVuX3BrZ3NfaW5pdCgpCnsKCVRBUkdFVD0kMQoJUFJPRklMRT0k
+MgoJRGVidWcgIkluaXRpYWxpemUgVEFSR0VUPSRUQVJHRVQsIFBST0ZJTEU9
+JFBST0ZJTEUiCgoJVE1QX1BLR19ESVI9JFRNUERJUi90aXplbl8ke1BST0ZJ
+TEV9X3BrZ3MKCWlmIFsgLWQgJFRNUF9QS0dfRElSIF07IHRoZW4gcm0gLXJm
+ICRUTVBfUEtHX0RJUjsgZmkKCW1rZGlyIC1wICRUTVBfUEtHX0RJUgoKCVBL
+R19VUkw9JFRJWkVOX1VSTC8kUFJPRklMRS9sYXRlc3QKCglCVUlMRF9YTUxf
+VVJMPSRQS0dfVVJMLyRCVUlMRF9YTUwKCVRNUF9CVUlMRD0kVE1QX1BLR19E
+SVIvJEJVSUxEX1hNTAoJVE1QX1JFUE9NRD0kVE1QX1BLR19ESVIvJFJFUE9N
+RF9YTUwKCVRNUF9QUklNQVJZPSRUTVBfUEtHX0RJUi8kUFJJTUFSWV9YTUwK
+CVRNUF9QUklNQVJZR1o9JHtUTVBfUFJJTUFSWX0uZ3oKCglGZXRjaCAkQlVJ
+TERfWE1MX1VSTCAkVE1QX0JVSUxECgoJRGVidWcgImZldGNoICRCVUlMRF9Y
+TUxfVVJMIHRvICRUTVBfQlVJTEQiCgoJVEFSR0VUX1hQQVRIPSIvL2J1aWxk
+L2J1aWxkdGFyZ2V0cy9idWlsZHRhcmdldFtAbmFtZT1cIiRUQVJHRVRcIl0v
+cmVwb1tAdHlwZT1cImJpbmFyeVwiXS90ZXh0KCkiCglYcGF0aF9nZXQgJFRB
+UkdFVF9YUEFUSCAkVE1QX0JVSUxECglUQVJHRVRfUEFUSD0kWFBBVEhfUkVT
+VUxUCglUQVJHRVRfVVJMPSRQS0dfVVJMLyRUQVJHRVRfUEFUSAoKCVJFUE9N
+RF9VUkw9JFRBUkdFVF9VUkwvcmVwb2RhdGEvcmVwb21kLnhtbAoJUFJJTUFS
+WV9YUEFUSD0nc3RyaW5nKC8vKltsb2NhbC1uYW1lKCk9ImRhdGEiXVtAdHlw
+ZT0icHJpbWFyeSJdLypbbG9jYWwtbmFtZSgpPSJsb2NhdGlvbiJdL0BocmVm
+KScKCglGZXRjaCAkUkVQT01EX1VSTCAkVE1QX1JFUE9NRAoKCURlYnVnICJm
+ZXRjaCAkUkVQT01EX1VSTCB0byAkVE1QX1JFUE9NRCIKCglYcGF0aF9nZXQg
+JFBSSU1BUllfWFBBVEggJFRNUF9SRVBPTUQKCVBSSU1BUllfWE1MX1BBVEg9
+JFhQQVRIX1JFU1VMVAoJUFJJTUFSWV9VUkw9JFRBUkdFVF9VUkwvJFBSSU1B
+UllfWE1MX1BBVEgKCglGZXRjaCAkUFJJTUFSWV9VUkwgJFRNUF9QUklNQVJZ
+R1oKCglEZWJ1ZyAiZmV0Y2ggJFBSSU1BUllfVVJMIHRvICRUTVBfUFJJTUFS
+WUdaIgoKCWd1bnppcCAkVE1QX1BSSU1BUllHWiAKCglEZWJ1ZyAidW56aXAg
+JFRNUF9QUklNQVJZR1ogdG8gJFRNUF9QUklNQVJZIiAKfQoKZmV0Y2hfdGl6
+ZW5fcGtncygpCnsKCUFSQ0g9JDEKCVBBQ0tBR0VfWFBBVEhfVFBMPSdzdHJp
+bmcoLy8qW2xvY2FsLW5hbWUoKT0ibWV0YWRhdGEiXS8qW2xvY2FsLW5hbWUo
+KT0icGFja2FnZSJdWypbbG9jYWwtbmFtZSgpPSJuYW1lIl1bdGV4dCgpPSJf
+UEtHXyJdXVsqW2xvY2FsLW5hbWUoKT0iYXJjaCJdW3RleHQoKT0iX0FSQ0hf
+Il1dLypbbG9jYWwtbmFtZSgpPSJsb2NhdGlvbiJdL0BocmVmKScKCglQQUNL
+QUdFX0NIRUNLU1VNX1hQQVRIX1RQTD0nc3RyaW5nKC8vKltsb2NhbC1uYW1l
+KCk9Im1ldGFkYXRhIl0vKltsb2NhbC1uYW1lKCk9InBhY2thZ2UiXVsqW2xv
+Y2FsLW5hbWUoKT0ibmFtZSJdW3RleHQoKT0iX1BLR18iXV1bKltsb2NhbC1u
+YW1lKCk9ImFyY2giXVt0ZXh0KCk9Il9BUkNIXyJdXS8qW2xvY2FsLW5hbWUo
+KT0iY2hlY2tzdW0iXS90ZXh0KCkpJwoKCWZvciBwa2cgaW4gJHtAOjJ9Cglk
+bwoJCUluZm9ybSAiRmV0Y2hpbmcuLi4gJHBrZyIKCQlYUEFUSD0ke1BBQ0tB
+R0VfWFBBVEhfVFBML19QS0dfLyRwa2d9CgkJWFBBVEg9JHtYUEFUSC9fQVJD
+SF8vJEFSQ0h9CgkJWHBhdGhfZ2V0ICRYUEFUSCAkVE1QX1BSSU1BUlkKCQlQ
+S0dfUEFUSD0kWFBBVEhfUkVTVUxUCgoJCVhQQVRIPSR7UEFDS0FHRV9DSEVD
+S1NVTV9YUEFUSF9UUEwvX1BLR18vJHBrZ30KCQlYUEFUSD0ke1hQQVRIL19B
+UkNIXy8kQVJDSH0KCQlYcGF0aF9nZXQgJFhQQVRIICRUTVBfUFJJTUFSWQoJ
+CUNIRUNLU1VNPSRYUEFUSF9SRVNVTFQKCgkJUEtHX1VSTD0kVEFSR0VUX1VS
+TC8kUEtHX1BBVEgKCQlQS0dfRklMRT0kKGJhc2VuYW1lICRQS0dfUEFUSCkK
+CQlQS0dfUEFUSD0kVE1QRElSLyRQS0dfRklMRQoKCQlEZWJ1ZyAiRG93bmxv
+YWQgJFBLR19VUkwgdG8gJFBLR19QQVRIIgoJCUZldGNoICRQS0dfVVJMICRQ
+S0dfUEFUSCB0cnVlCgoJCWVjaG8gIiRDSEVDS1NVTSAkUEtHX1BBVEgiIHwg
+c2hhMjU2c3VtIC1jIC0gPiAvZGV2L251bGwKCQlpZiBbICQ/IC1uZSAwIF07
+IHRoZW4KCQkJRXJyb3IgIkZhaWwgdG8gZmV0Y2ggJFBLR19VUkwgdG8gJFBL
+R19QQVRIIgoJCQlEZWJ1ZyAiQ2hlY2tzdW0gPSAkQ0hFQ0tTVU0iCgkJCWV4
+aXQgMQoJCWZpCglkb25lCn0KCkluZm9ybSAiSW5pdGlhbGl6ZSBhcm0gYmFz
+ZSIKZmV0Y2hfdGl6ZW5fcGtnc19pbml0IHN0YW5kYXJkIGJhc2UKSW5mb3Jt
+ICJmZXRjaCBjb21tb24gcGFja2FnZXMiCmZldGNoX3RpemVuX3BrZ3MgYXJt
+djdsIGdjYyBnbGliYyBnbGliYy1kZXZlbCBsaWJpY3UgbGliaWN1LWRldmVs
+CmZldGNoX3RpemVuX3BrZ3Mgbm9hcmNoIGxpbnV4LWdsaWJjLWRldmVsCklu
+Zm9ybSAiZmV0Y2ggY29yZWNsciBwYWNrYWdlcyIKZmV0Y2hfdGl6ZW5fcGtn
+cyBhcm12N2wgbGxkYiBsbGRiLWRldmVsIGxpYmdjYyBsaWJzdGRjKysgbGli
+c3RkYysrLWRldmVsIGxpYnVud2luZCBsaWJ1bndpbmQtZGV2ZWwgdGl6ZW4t
+cmVsZWFzZSBsdHRuZy11c3QtZGV2ZWwgbHR0bmctdXN0IHVzZXJzcGFjZS1y
+Y3UtZGV2ZWwgdXNlcnNwYWNlLXJjdQpJbmZvcm0gImZldGNoIGNvcmVmeCBw
+YWNrYWdlcyIKZmV0Y2hfdGl6ZW5fcGtncyBhcm12N2wgbGliY29tX2VyciBs
+aWJjb21fZXJyLWRldmVsIHpsaWIgemxpYi1kZXZlbCBsaWJvcGVuc3NsIGxp
+Ym9wZW5zc2wtZGV2ZWwga3JiNSBrcmI1LWRldmVsIGxpYmN1cmwgbGliY3Vy
+bC1kZXZlbAoKSW5mb3JtICJJbml0aWFsaXplIHN0YW5kYXJkIHVuaWZpZWQi
+CmZldGNoX3RpemVuX3BrZ3NfaW5pdCBzdGFuZGFyZCB1bmlmaWVkCkluZm9y
+bSAiZmV0Y2ggY29yZWZ4IHBhY2thZ2VzIgpmZXRjaF90aXplbl9wa2dzIGFy
+bXY3bCBnc3NkcCBnc3NkcC1kZXZlbAoK

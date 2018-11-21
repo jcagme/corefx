@@ -1,35 +1,29 @@
-#!/usr/bin/env bash
-
-source="${BASH_SOURCE[0]}"
-
-# resolve $source until the file is no longer a symlink
-while [[ -h "$source" ]]; do
-  scriptroot="$( cd -P "$( dirname "$source" )" && pwd )"
-  source="$(readlink "$source")"
-  # if $source was a relative symlink, we need to resolve it relative to the path where the
-  # symlink file was located
-  [[ $source != /* ]] && source="$scriptroot/$source"
-done
-scriptroot="$( cd -P "$( dirname "$source" )" && pwd )"
-verbosity=m
-
-. "$scriptroot/tools.sh"
-
-function InstallDarcCli {
-  local darc_cli_package_name="microsoft.dotnet.darc"
-  local uninstall_command=`$DOTNET_INSTALL_DIR/dotnet tool uninstall $darc_cli_package_name -g`
-  local tool_list=$($DOTNET_INSTALL_DIR/dotnet tool list -g)
-  if [[ $tool_list = *$darc_cli_package_name* ]]; then
-    echo $($DOTNET_INSTALL_DIR/dotnet tool uninstall $darc_cli_package_name -g)
-  fi
-
-  ReadGlobalVersion "Microsoft.DotNet.Arcade.Sdk"
-  local toolset_version=$_ReadGlobalVersion
-
-  echo "Installing Darc CLI version $toolset_version..."
-  echo "You may need to restart your command shell if this is the first dotnet tool you have installed."
-  echo $($DOTNET_INSTALL_DIR/dotnet tool install $darc_cli_package_name --version $toolset_version -v $verbosity -g)
-}
-
-InitializeTools
-InstallDarcCli
+IyEvdXNyL2Jpbi9lbnYgYmFzaAoKc291cmNlPSIke0JBU0hfU09VUkNFWzBd
+fSIKCiMgcmVzb2x2ZSAkc291cmNlIHVudGlsIHRoZSBmaWxlIGlzIG5vIGxv
+bmdlciBhIHN5bWxpbmsKd2hpbGUgW1sgLWggIiRzb3VyY2UiIF1dOyBkbwog
+IHNjcmlwdHJvb3Q9IiQoIGNkIC1QICIkKCBkaXJuYW1lICIkc291cmNlIiAp
+IiAmJiBwd2QgKSIKICBzb3VyY2U9IiQocmVhZGxpbmsgIiRzb3VyY2UiKSIK
+ICAjIGlmICRzb3VyY2Ugd2FzIGEgcmVsYXRpdmUgc3ltbGluaywgd2UgbmVl
+ZCB0byByZXNvbHZlIGl0IHJlbGF0aXZlIHRvIHRoZSBwYXRoIHdoZXJlIHRo
+ZQogICMgc3ltbGluayBmaWxlIHdhcyBsb2NhdGVkCiAgW1sgJHNvdXJjZSAh
+PSAvKiBdXSAmJiBzb3VyY2U9IiRzY3JpcHRyb290LyRzb3VyY2UiCmRvbmUK
+c2NyaXB0cm9vdD0iJCggY2QgLVAgIiQoIGRpcm5hbWUgIiRzb3VyY2UiICki
+ICYmIHB3ZCApIgp2ZXJib3NpdHk9bQoKLiAiJHNjcmlwdHJvb3QvdG9vbHMu
+c2giCgpmdW5jdGlvbiBJbnN0YWxsRGFyY0NsaSB7CiAgbG9jYWwgZGFyY19j
+bGlfcGFja2FnZV9uYW1lPSJtaWNyb3NvZnQuZG90bmV0LmRhcmMiCiAgbG9j
+YWwgdW5pbnN0YWxsX2NvbW1hbmQ9YCRET1RORVRfSU5TVEFMTF9ESVIvZG90
+bmV0IHRvb2wgdW5pbnN0YWxsICRkYXJjX2NsaV9wYWNrYWdlX25hbWUgLWdg
+CiAgbG9jYWwgdG9vbF9saXN0PSQoJERPVE5FVF9JTlNUQUxMX0RJUi9kb3Ru
+ZXQgdG9vbCBsaXN0IC1nKQogIGlmIFtbICR0b29sX2xpc3QgPSAqJGRhcmNf
+Y2xpX3BhY2thZ2VfbmFtZSogXV07IHRoZW4KICAgIGVjaG8gJCgkRE9UTkVU
+X0lOU1RBTExfRElSL2RvdG5ldCB0b29sIHVuaW5zdGFsbCAkZGFyY19jbGlf
+cGFja2FnZV9uYW1lIC1nKQogIGZpCgogIFJlYWRHbG9iYWxWZXJzaW9uICJN
+aWNyb3NvZnQuRG90TmV0LkFyY2FkZS5TZGsiCiAgbG9jYWwgdG9vbHNldF92
+ZXJzaW9uPSRfUmVhZEdsb2JhbFZlcnNpb24KCiAgZWNobyAiSW5zdGFsbGlu
+ZyBEYXJjIENMSSB2ZXJzaW9uICR0b29sc2V0X3ZlcnNpb24uLi4iCiAgZWNo
+byAiWW91IG1heSBuZWVkIHRvIHJlc3RhcnQgeW91ciBjb21tYW5kIHNoZWxs
+IGlmIHRoaXMgaXMgdGhlIGZpcnN0IGRvdG5ldCB0b29sIHlvdSBoYXZlIGlu
+c3RhbGxlZC4iCiAgZWNobyAkKCRET1RORVRfSU5TVEFMTF9ESVIvZG90bmV0
+IHRvb2wgaW5zdGFsbCAkZGFyY19jbGlfcGFja2FnZV9uYW1lIC0tdmVyc2lv
+biAkdG9vbHNldF92ZXJzaW9uIC12ICR2ZXJib3NpdHkgLWcpCn0KCkluaXRp
+YWxpemVUb29scwpJbnN0YWxsRGFyY0NsaQo=

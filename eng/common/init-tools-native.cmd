@@ -1,3 +1,3 @@
-@echo off
-powershell -NoProfile -NoLogo -ExecutionPolicy ByPass -command "& """%~dp0init-tools-native.ps1""" %*"
-exit /b %ErrorLevel%
+QGVjaG8gb2ZmCnBvd2Vyc2hlbGwgLU5vUHJvZmlsZSAtTm9Mb2dvIC1FeGVj
+dXRpb25Qb2xpY3kgQnlQYXNzIC1jb21tYW5kICImICIiIiV+ZHAwaW5pdC10
+b29scy1uYXRpdmUucHMxIiIiICUqIgpleGl0IC9iICVFcnJvckxldmVsJQ==

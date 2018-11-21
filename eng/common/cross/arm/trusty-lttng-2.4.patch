@@ -1,71 +1,66 @@
-From e72c9d7ead60e3317bd6d1fade995c07021c947b Mon Sep 17 00:00:00 2001
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Date: Thu, 7 May 2015 13:25:04 -0400
-Subject: [PATCH] Fix: building probe providers with C++ compiler
-
-Robert Daniels wrote:
-> > I'm attempting to use lttng userspace tracing with a C++ application
-> > on an ARM platform. I'm using GCC 4.8.4 on Linux 3.14 with the 2.6
-> > release of lttng. I've compiled lttng-modules, lttng-ust, and
-> > lttng-tools and have been able to get a simple test working with C
-> > code.  When I attempt to run the hello.cxx test on my target it will
-> > segfault.
->
->
-> I spent a little time digging into this issue and finally discovered the
-> cause of my segfault with ARM C++ tracepoints.
->
-> There is a struct called 'lttng_event' in ust-events.h which contains an
-> empty union 'u'.  This was the cause of my issue.  Under C, this empty union
-> compiles to a zero byte member while under C++ it compiles to a one byte
-> member, and in my case was four-byte aligned which caused my C++ code to
-> have the 'cds_list_head node' offset incorrectly by four bytes.  This lead
-> to an incorrect linked list structure which caused my issue.
->
-> Since this union is empty, I simply removed it from the struct and everything
-> worked correctly.
->
-> I don't know the history or purpose behind this empty union so I'd like to
-> know if this is a safe fix.  If it is I can submit a patch with the union
-> removed.
-
-That's a very nice catch!
-
-We do not support building tracepoint probe provider with
-g++ yet, as stated in lttng-ust(3):
-
-"- Note for C++ support: although an application instrumented with
-   tracepoints can be compiled with g++, tracepoint probes should be
-   compiled with gcc (only tested with gcc so far)."
-
-However, if it works fine with this fix, then I'm tempted to take it,
-especially because removing the empty union does not appear to affect
-the layout of struct lttng_event as seen from liblttng-ust, which must
-be compiled with a C compiler,  and from probe providers compiled with
-a C compiler. So all we are changing is the layout of a probe provider
-compiled with a C++ compiler, which is anyway buggy at the moment,
-because it is not compatible with the layout expected by liblttng-ust
-compiled with a C compiler.
-
-Reported-by: Robert Daniels <robert.daniels@vantagecontrols.com>
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
----
- include/lttng/ust-events.h | 2 --
- 1 file changed, 2 deletions(-)
-
-diff --git a/usr/include/lttng/ust-events.h b/usr/include/lttng/ust-events.h
-index 328a875..3d7a274 100644
---- a/usr/include/lttng/ust-events.h
-+++ b/usr/include/lttng/ust-events.h
-@@ -407,8 +407,6 @@ struct lttng_event {
- 	void *_deprecated1;
- 	struct lttng_ctx *ctx;
- 	enum lttng_ust_instrumentation instrumentation;
--	union {
--	} u;
- 	struct cds_list_head node;		/* Event list in session */
- 	struct cds_list_head _deprecated2;
- 	void *_deprecated3;
--- 
-2.7.4
-
+RnJvbSBlNzJjOWQ3ZWFkNjBlMzMxN2JkNmQxZmFkZTk5NWMwNzAyMWM5NDdi
+IE1vbiBTZXAgMTcgMDA6MDA6MDAgMjAwMQpGcm9tOiBNYXRoaWV1IERlc25v
+eWVycyA8bWF0aGlldS5kZXNub3llcnNAZWZmaWNpb3MuY29tPgpEYXRlOiBU
+aHUsIDcgTWF5IDIwMTUgMTM6MjU6MDQgLTA0MDAKU3ViamVjdDogW1BBVENI
+XSBGaXg6IGJ1aWxkaW5nIHByb2JlIHByb3ZpZGVycyB3aXRoIEMrKyBjb21w
+aWxlcgoKUm9iZXJ0IERhbmllbHMgd3JvdGU6Cj4gPiBJJ20gYXR0ZW1wdGlu
+ZyB0byB1c2UgbHR0bmcgdXNlcnNwYWNlIHRyYWNpbmcgd2l0aCBhIEMrKyBh
+cHBsaWNhdGlvbgo+ID4gb24gYW4gQVJNIHBsYXRmb3JtLiBJJ20gdXNpbmcg
+R0NDIDQuOC40IG9uIExpbnV4IDMuMTQgd2l0aCB0aGUgMi42Cj4gPiByZWxl
+YXNlIG9mIGx0dG5nLiBJJ3ZlIGNvbXBpbGVkIGx0dG5nLW1vZHVsZXMsIGx0
+dG5nLXVzdCwgYW5kCj4gPiBsdHRuZy10b29scyBhbmQgaGF2ZSBiZWVuIGFi
+bGUgdG8gZ2V0IGEgc2ltcGxlIHRlc3Qgd29ya2luZyB3aXRoIEMKPiA+IGNv
+ZGUuICBXaGVuIEkgYXR0ZW1wdCB0byBydW4gdGhlIGhlbGxvLmN4eCB0ZXN0
+IG9uIG15IHRhcmdldCBpdCB3aWxsCj4gPiBzZWdmYXVsdC4KPgo+Cj4gSSBz
+cGVudCBhIGxpdHRsZSB0aW1lIGRpZ2dpbmcgaW50byB0aGlzIGlzc3VlIGFu
+ZCBmaW5hbGx5IGRpc2NvdmVyZWQgdGhlCj4gY2F1c2Ugb2YgbXkgc2VnZmF1
+bHQgd2l0aCBBUk0gQysrIHRyYWNlcG9pbnRzLgo+Cj4gVGhlcmUgaXMgYSBz
+dHJ1Y3QgY2FsbGVkICdsdHRuZ19ldmVudCcgaW4gdXN0LWV2ZW50cy5oIHdo
+aWNoIGNvbnRhaW5zIGFuCj4gZW1wdHkgdW5pb24gJ3UnLiAgVGhpcyB3YXMg
+dGhlIGNhdXNlIG9mIG15IGlzc3VlLiAgVW5kZXIgQywgdGhpcyBlbXB0eSB1
+bmlvbgo+IGNvbXBpbGVzIHRvIGEgemVybyBieXRlIG1lbWJlciB3aGlsZSB1
+bmRlciBDKysgaXQgY29tcGlsZXMgdG8gYSBvbmUgYnl0ZQo+IG1lbWJlciwg
+YW5kIGluIG15IGNhc2Ugd2FzIGZvdXItYnl0ZSBhbGlnbmVkIHdoaWNoIGNh
+dXNlZCBteSBDKysgY29kZSB0bwo+IGhhdmUgdGhlICdjZHNfbGlzdF9oZWFk
+IG5vZGUnIG9mZnNldCBpbmNvcnJlY3RseSBieSBmb3VyIGJ5dGVzLiAgVGhp
+cyBsZWFkCj4gdG8gYW4gaW5jb3JyZWN0IGxpbmtlZCBsaXN0IHN0cnVjdHVy
+ZSB3aGljaCBjYXVzZWQgbXkgaXNzdWUuCj4KPiBTaW5jZSB0aGlzIHVuaW9u
+IGlzIGVtcHR5LCBJIHNpbXBseSByZW1vdmVkIGl0IGZyb20gdGhlIHN0cnVj
+dCBhbmQgZXZlcnl0aGluZwo+IHdvcmtlZCBjb3JyZWN0bHkuCj4KPiBJIGRv
+bid0IGtub3cgdGhlIGhpc3Rvcnkgb3IgcHVycG9zZSBiZWhpbmQgdGhpcyBl
+bXB0eSB1bmlvbiBzbyBJJ2QgbGlrZSB0bwo+IGtub3cgaWYgdGhpcyBpcyBh
+IHNhZmUgZml4LiAgSWYgaXQgaXMgSSBjYW4gc3VibWl0IGEgcGF0Y2ggd2l0
+aCB0aGUgdW5pb24KPiByZW1vdmVkLgoKVGhhdCdzIGEgdmVyeSBuaWNlIGNh
+dGNoIQoKV2UgZG8gbm90IHN1cHBvcnQgYnVpbGRpbmcgdHJhY2Vwb2ludCBw
+cm9iZSBwcm92aWRlciB3aXRoCmcrKyB5ZXQsIGFzIHN0YXRlZCBpbiBsdHRu
+Zy11c3QoMyk6CgoiLSBOb3RlIGZvciBDKysgc3VwcG9ydDogYWx0aG91Z2gg
+YW4gYXBwbGljYXRpb24gaW5zdHJ1bWVudGVkIHdpdGgKICAgdHJhY2Vwb2lu
+dHMgY2FuIGJlIGNvbXBpbGVkIHdpdGggZysrLCB0cmFjZXBvaW50IHByb2Jl
+cyBzaG91bGQgYmUKICAgY29tcGlsZWQgd2l0aCBnY2MgKG9ubHkgdGVzdGVk
+IHdpdGggZ2NjIHNvIGZhcikuIgoKSG93ZXZlciwgaWYgaXQgd29ya3MgZmlu
+ZSB3aXRoIHRoaXMgZml4LCB0aGVuIEknbSB0ZW1wdGVkIHRvIHRha2UgaXQs
+CmVzcGVjaWFsbHkgYmVjYXVzZSByZW1vdmluZyB0aGUgZW1wdHkgdW5pb24g
+ZG9lcyBub3QgYXBwZWFyIHRvIGFmZmVjdAp0aGUgbGF5b3V0IG9mIHN0cnVj
+dCBsdHRuZ19ldmVudCBhcyBzZWVuIGZyb20gbGlibHR0bmctdXN0LCB3aGlj
+aCBtdXN0CmJlIGNvbXBpbGVkIHdpdGggYSBDIGNvbXBpbGVyLCAgYW5kIGZy
+b20gcHJvYmUgcHJvdmlkZXJzIGNvbXBpbGVkIHdpdGgKYSBDIGNvbXBpbGVy
+LiBTbyBhbGwgd2UgYXJlIGNoYW5naW5nIGlzIHRoZSBsYXlvdXQgb2YgYSBw
+cm9iZSBwcm92aWRlcgpjb21waWxlZCB3aXRoIGEgQysrIGNvbXBpbGVyLCB3
+aGljaCBpcyBhbnl3YXkgYnVnZ3kgYXQgdGhlIG1vbWVudCwKYmVjYXVzZSBp
+dCBpcyBub3QgY29tcGF0aWJsZSB3aXRoIHRoZSBsYXlvdXQgZXhwZWN0ZWQg
+YnkgbGlibHR0bmctdXN0CmNvbXBpbGVkIHdpdGggYSBDIGNvbXBpbGVyLgoK
+UmVwb3J0ZWQtYnk6IFJvYmVydCBEYW5pZWxzIDxyb2JlcnQuZGFuaWVsc0B2
+YW50YWdlY29udHJvbHMuY29tPgpTaWduZWQtb2ZmLWJ5OiBNYXRoaWV1IERl
+c25veWVycyA8bWF0aGlldS5kZXNub3llcnNAZWZmaWNpb3MuY29tPgotLS0K
+IGluY2x1ZGUvbHR0bmcvdXN0LWV2ZW50cy5oIHwgMiAtLQogMSBmaWxlIGNo
+YW5nZWQsIDIgZGVsZXRpb25zKC0pCgpkaWZmIC0tZ2l0IGEvdXNyL2luY2x1
+ZGUvbHR0bmcvdXN0LWV2ZW50cy5oIGIvdXNyL2luY2x1ZGUvbHR0bmcvdXN0
+LWV2ZW50cy5oCmluZGV4IDMyOGE4NzUuLjNkN2EyNzQgMTAwNjQ0Ci0tLSBh
+L3Vzci9pbmNsdWRlL2x0dG5nL3VzdC1ldmVudHMuaAorKysgYi91c3IvaW5j
+bHVkZS9sdHRuZy91c3QtZXZlbnRzLmgKQEAgLTQwNyw4ICs0MDcsNiBAQCBz
+dHJ1Y3QgbHR0bmdfZXZlbnQgewogCXZvaWQgKl9kZXByZWNhdGVkMTsKIAlz
+dHJ1Y3QgbHR0bmdfY3R4ICpjdHg7CiAJZW51bSBsdHRuZ191c3RfaW5zdHJ1
+bWVudGF0aW9uIGluc3RydW1lbnRhdGlvbjsKLQl1bmlvbiB7Ci0JfSB1Owog
+CXN0cnVjdCBjZHNfbGlzdF9oZWFkIG5vZGU7CQkvKiBFdmVudCBsaXN0IGlu
+IHNlc3Npb24gKi8KIAlzdHJ1Y3QgY2RzX2xpc3RfaGVhZCBfZGVwcmVjYXRl
+ZDI7CiAJdm9pZCAqX2RlcHJlY2F0ZWQzOwotLSAKMi43LjQKCg==

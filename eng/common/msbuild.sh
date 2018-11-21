@@ -1,55 +1,25 @@
-#!/usr/bin/env bash
-
-source="${BASH_SOURCE[0]}"
-
-# resolve $source until the file is no longer a symlink
-while [[ -h "$source" ]]; do
-  scriptroot="$( cd -P "$( dirname "$source" )" && pwd )"
-  source="$(readlink "$source")"
-  # if $source was a relative symlink, we need to resolve it relative to the path where the
-  # symlink file was located
-  [[ $source != /* ]] && source="$scriptroot/$source"
-done
-scriptroot="$( cd -P "$( dirname "$source" )" && pwd )"
-
-verbosity='minimal'
-warnaserror=true
-nodereuse=true
-prepare_machine=false
-extraargs=''
-
-while (($# > 0)); do
-  lowerI="$(echo $1 | awk '{print tolower($0)}')"
-  case $lowerI in
-    --verbosity)
-      verbosity=$2
-      shift 2
-      ;;
-    --warnaserror)
-      warnaserror=$2
-      shift 2
-      ;;
-    --nodereuse)
-      nodereuse=$2
-      shift 2
-      ;;
-    --ci)
-      ci=true
-      shift 1
-      ;;
-    --preparemachine)
-      prepare_machine=true
-      shift 1
-      ;;
-      *)
-      extraargs="$extraargs $1"
-      shift 1
-      ;;
-  esac
-done
-
-. "$scriptroot/tools.sh"
-
-InitializeTools
-MSBuild $extraargs
-ExitWithExitCode $?
+IyEvdXNyL2Jpbi9lbnYgYmFzaAoKc291cmNlPSIke0JBU0hfU09VUkNFWzBd
+fSIKCiMgcmVzb2x2ZSAkc291cmNlIHVudGlsIHRoZSBmaWxlIGlzIG5vIGxv
+bmdlciBhIHN5bWxpbmsKd2hpbGUgW1sgLWggIiRzb3VyY2UiIF1dOyBkbwog
+IHNjcmlwdHJvb3Q9IiQoIGNkIC1QICIkKCBkaXJuYW1lICIkc291cmNlIiAp
+IiAmJiBwd2QgKSIKICBzb3VyY2U9IiQocmVhZGxpbmsgIiRzb3VyY2UiKSIK
+ICAjIGlmICRzb3VyY2Ugd2FzIGEgcmVsYXRpdmUgc3ltbGluaywgd2UgbmVl
+ZCB0byByZXNvbHZlIGl0IHJlbGF0aXZlIHRvIHRoZSBwYXRoIHdoZXJlIHRo
+ZQogICMgc3ltbGluayBmaWxlIHdhcyBsb2NhdGVkCiAgW1sgJHNvdXJjZSAh
+PSAvKiBdXSAmJiBzb3VyY2U9IiRzY3JpcHRyb290LyRzb3VyY2UiCmRvbmUK
+c2NyaXB0cm9vdD0iJCggY2QgLVAgIiQoIGRpcm5hbWUgIiRzb3VyY2UiICki
+ICYmIHB3ZCApIgoKdmVyYm9zaXR5PSdtaW5pbWFsJwp3YXJuYXNlcnJvcj10
+cnVlCm5vZGVyZXVzZT10cnVlCnByZXBhcmVfbWFjaGluZT1mYWxzZQpleHRy
+YWFyZ3M9JycKCndoaWxlICgoJCMgPiAwKSk7IGRvCiAgbG93ZXJJPSIkKGVj
+aG8gJDEgfCBhd2sgJ3twcmludCB0b2xvd2VyKCQwKX0nKSIKICBjYXNlICRs
+b3dlckkgaW4KICAgIC0tdmVyYm9zaXR5KQogICAgICB2ZXJib3NpdHk9JDIK
+ICAgICAgc2hpZnQgMgogICAgICA7OwogICAgLS13YXJuYXNlcnJvcikKICAg
+ICAgd2FybmFzZXJyb3I9JDIKICAgICAgc2hpZnQgMgogICAgICA7OwogICAg
+LS1ub2RlcmV1c2UpCiAgICAgIG5vZGVyZXVzZT0kMgogICAgICBzaGlmdCAy
+CiAgICAgIDs7CiAgICAtLWNpKQogICAgICBjaT10cnVlCiAgICAgIHNoaWZ0
+IDEKICAgICAgOzsKICAgIC0tcHJlcGFyZW1hY2hpbmUpCiAgICAgIHByZXBh
+cmVfbWFjaGluZT10cnVlCiAgICAgIHNoaWZ0IDEKICAgICAgOzsKICAgICAg
+KikKICAgICAgZXh0cmFhcmdzPSIkZXh0cmFhcmdzICQxIgogICAgICBzaGlm
+dCAxCiAgICAgIDs7CiAgZXNhYwpkb25lCgouICIkc2NyaXB0cm9vdC90b29s
+cy5zaCIKCkluaXRpYWxpemVUb29scwpNU0J1aWxkICRleHRyYWFyZ3MKRXhp
+dFdpdGhFeGl0Q29kZSAkPwo=

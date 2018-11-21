@@ -1,21 +1,17 @@
-$verbosity = "m"
-. $PSScriptRoot\tools.ps1
-
-function InstallDarcCli {
-  $darcCliPackageName = "microsoft.dotnet.darc"
-  $dotnet = "$env:DOTNET_INSTALL_DIR\dotnet.exe"
-  $toolList = Invoke-Expression "& `"$dotnet`" tool list -g"
-
-  if ($toolList -like "*$darcCliPackageName*") {
-    Invoke-Expression "& `"$dotnet`" tool uninstall $darcCliPackageName -g"
-  }
-
-  $toolsetVersion = $GlobalJson.'msbuild-sdks'.'Microsoft.DotNet.Arcade.Sdk'
-
-  Write-Host "Installing Darc CLI version $toolsetVersion..."
-  Write-Host "You may need to restart your command window if this is the first dotnet tool you have installed."
-  Invoke-Expression "& `"$dotnet`" tool install $darcCliPackageName --version $toolsetVersion -v $verbosity -g"
-}
-
-InitializeTools
-InstallDarcCli
+JHZlcmJvc2l0eSA9ICJtIgouICRQU1NjcmlwdFJvb3RcdG9vbHMucHMxCgpm
+dW5jdGlvbiBJbnN0YWxsRGFyY0NsaSB7CiAgJGRhcmNDbGlQYWNrYWdlTmFt
+ZSA9ICJtaWNyb3NvZnQuZG90bmV0LmRhcmMiCiAgJGRvdG5ldCA9ICIkZW52
+OkRPVE5FVF9JTlNUQUxMX0RJUlxkb3RuZXQuZXhlIgogICR0b29sTGlzdCA9
+IEludm9rZS1FeHByZXNzaW9uICImIGAiJGRvdG5ldGAiIHRvb2wgbGlzdCAt
+ZyIKCiAgaWYgKCR0b29sTGlzdCAtbGlrZSAiKiRkYXJjQ2xpUGFja2FnZU5h
+bWUqIikgewogICAgSW52b2tlLUV4cHJlc3Npb24gIiYgYCIkZG90bmV0YCIg
+dG9vbCB1bmluc3RhbGwgJGRhcmNDbGlQYWNrYWdlTmFtZSAtZyIKICB9Cgog
+ICR0b29sc2V0VmVyc2lvbiA9ICRHbG9iYWxKc29uLidtc2J1aWxkLXNka3Mn
+LidNaWNyb3NvZnQuRG90TmV0LkFyY2FkZS5TZGsnCgogIFdyaXRlLUhvc3Qg
+Ikluc3RhbGxpbmcgRGFyYyBDTEkgdmVyc2lvbiAkdG9vbHNldFZlcnNpb24u
+Li4iCiAgV3JpdGUtSG9zdCAiWW91IG1heSBuZWVkIHRvIHJlc3RhcnQgeW91
+ciBjb21tYW5kIHdpbmRvdyBpZiB0aGlzIGlzIHRoZSBmaXJzdCBkb3RuZXQg
+dG9vbCB5b3UgaGF2ZSBpbnN0YWxsZWQuIgogIEludm9rZS1FeHByZXNzaW9u
+ICImIGAiJGRvdG5ldGAiIHRvb2wgaW5zdGFsbCAkZGFyY0NsaVBhY2thZ2VO
+YW1lIC0tdmVyc2lvbiAkdG9vbHNldFZlcnNpb24gLXYgJHZlcmJvc2l0eSAt
+ZyIKfQoKSW5pdGlhbGl6ZVRvb2xzCkluc3RhbGxEYXJjQ2xpCg==

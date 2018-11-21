@@ -1,44 +1,46 @@
-parameters:
-  HelixSource: 'pr/dotnet-github-anon-kaonashi-bot'
-  HelixType: ̓'tests/default'
-  HelixBuild: $(Build.BuildNumber)
-  HelixTargetQueues: ''
-  HelixAccessToken: ''
-  HelixPreCommands: ''
-  HelixPostCommands: ''
-  WorkItemDirectory: ''
-  WorkItemCommand: ''
-  CorrelationPayloadDirectory: ''
-  IncludeDotNetCli: false
-  DotNetCliPackageType: ''
-  DotNetCliVersion: ''
-  EnableXUnitReporter: false
-  WaitForWorkItemCompletion: true
-  condition: succeeded()
-  continueOnError: false
-
-steps:
-  - task: DotNetCoreCLI@2
-    inputs:
-      command: custom
-      projects: eng/common/helixpublish.proj
-      custom: msbuild
-      arguments: '/t:test /p:Language=msbuild /bl:$(Build.SourcesDirectory)\artifacts\log\$(_BuildConfig)\SendToHelix.binlog'
-    displayName: Send job to Helix
-    env:
-      HelixSource: ${{ parameters.HelixSource }}
-      HelixType: ${{ parameters.HelixType }}
-      HelixBuild: ${{ parameters.HelixBuild }}
-      HelixTargetQueues: ${{ parameters.HelixTargetQueues }}
-      HelixAccessToken: ${{ parameters.HelixAccessToken }}
-      HelixPreCommands: ${{ parameters.HelixPreCommands }}
-      HelixPostCommands: ${{ parameters.HelixPostCommands }}
-      WorkItemDirectory: ${{ parameters.WorkItemDirectory }}
-      WorkItemCommand: ${{ parameters.WorkItemCommand }}
-      IncludeDotNetCli: ${{ parameters.IncludeDotNetCli }}
-      DotNetCliPackageType: ${{ parameters.DotNetCliPackageType }}
-      DotNetCliVersion: ${{ parameters.DotNetCliVersion }}
-      EnableXUnitReporter: ${{ parameters.EnableXUnitReporter }}
-      WaitForWorkItemCompletion: ${{ parameters.WaitForWorkItemCompletion }}
-    condition: ${{ parameters.condition }}
-    continueOnError: ${{ parameters.continueOnError }}
+cGFyYW1ldGVyczoKICBIZWxpeFNvdXJjZTogJ3ByL2RvdG5ldC1naXRodWIt
+YW5vbi1rYW9uYXNoaS1ib3QnCiAgSGVsaXhUeXBlOiDMkyd0ZXN0cy9kZWZh
+dWx0JwogIEhlbGl4QnVpbGQ6ICQoQnVpbGQuQnVpbGROdW1iZXIpCiAgSGVs
+aXhUYXJnZXRRdWV1ZXM6ICcnCiAgSGVsaXhBY2Nlc3NUb2tlbjogJycKICBI
+ZWxpeFByZUNvbW1hbmRzOiAnJwogIEhlbGl4UG9zdENvbW1hbmRzOiAnJwog
+IFdvcmtJdGVtRGlyZWN0b3J5OiAnJwogIFdvcmtJdGVtQ29tbWFuZDogJycK
+ICBDb3JyZWxhdGlvblBheWxvYWREaXJlY3Rvcnk6ICcnCiAgWFVuaXRQcm9q
+ZWN0czogJycKICBYVW5pdFRhcmdldEZyYW1ld29yazogJycKICBYVW5pdFJ1
+bm5lclZlcnNpb246ICcnCiAgSW5jbHVkZURvdE5ldENsaTogZmFsc2UKICBE
+b3ROZXRDbGlQYWNrYWdlVHlwZTogJycKICBEb3ROZXRDbGlWZXJzaW9uOiAn
+JwogIEVuYWJsZVhVbml0UmVwb3J0ZXI6IGZhbHNlCiAgV2FpdEZvcldvcmtJ
+dGVtQ29tcGxldGlvbjogdHJ1ZQogIGNvbmRpdGlvbjogc3VjY2VlZGVkKCkK
+ICBjb250aW51ZU9uRXJyb3I6IGZhbHNlCgpzdGVwczoKICAtIHRhc2s6IERv
+dE5ldENvcmVDTElAMgogICAgaW5wdXRzOgogICAgICBjb21tYW5kOiBjdXN0
+b20KICAgICAgcHJvamVjdHM6IGVuZy9jb21tb24vaGVsaXhwdWJsaXNoLnBy
+b2oKICAgICAgY3VzdG9tOiBtc2J1aWxkCiAgICAgIGFyZ3VtZW50czogJy9i
+bDokKEJ1aWxkLlNvdXJjZXNEaXJlY3RvcnkpL2FydGlmYWN0cy9sb2cvJChf
+QnVpbGRDb25maWcpL1NlbmRUb0hlbGl4LmJpbmxvZycKICAgIGRpc3BsYXlO
+YW1lOiBTZW5kIGpvYiB0byBIZWxpeAogICAgZW52OgogICAgICBIZWxpeFNv
+dXJjZTogJHt7IHBhcmFtZXRlcnMuSGVsaXhTb3VyY2UgfX0KICAgICAgSGVs
+aXhUeXBlOiAke3sgcGFyYW1ldGVycy5IZWxpeFR5cGUgfX0KICAgICAgSGVs
+aXhCdWlsZDogJHt7IHBhcmFtZXRlcnMuSGVsaXhCdWlsZCB9fQogICAgICBI
+ZWxpeFRhcmdldFF1ZXVlczogJHt7IHBhcmFtZXRlcnMuSGVsaXhUYXJnZXRR
+dWV1ZXMgfX0KICAgICAgSGVsaXhBY2Nlc3NUb2tlbjogJHt7IHBhcmFtZXRl
+cnMuSGVsaXhBY2Nlc3NUb2tlbiB9fQogICAgICBIZWxpeFByZUNvbW1hbmRz
+OiAke3sgcGFyYW1ldGVycy5IZWxpeFByZUNvbW1hbmRzIH19CiAgICAgIEhl
+bGl4UG9zdENvbW1hbmRzOiAke3sgcGFyYW1ldGVycy5IZWxpeFBvc3RDb21t
+YW5kcyB9fQogICAgICBXb3JrSXRlbURpcmVjdG9yeTogJHt7IHBhcmFtZXRl
+cnMuV29ya0l0ZW1EaXJlY3RvcnkgfX0KICAgICAgV29ya0l0ZW1Db21tYW5k
+OiAke3sgcGFyYW1ldGVycy5Xb3JrSXRlbUNvbW1hbmQgfX0KICAgICAgQ29y
+cmVsYXRpb25QYXlsb2FkRGlyZWN0b3J5OiAke3sgcGFyYW1ldGVycy5Db3Jy
+ZWxhdGlvblBheWxvYWREaXJlY3RvcnkgfX0KICAgICAgWFVuaXRQcm9qZWN0
+czogJHt7IHBhcmFtZXRlcnMuWFVuaXRQcm9qZWN0cyB9fQogICAgICBYVW5p
+dFRhcmdldEZyYW1ld29yazogJHt7IHBhcmFtZXRlcnMuWFVuaXRUYXJnZXRG
+cmFtZXdvcmsgfX0KICAgICAgWFVuaXRSdW5uZXJWZXJzaW9uOiAke3sgcGFy
+YW1ldGVycy5YVW5pdFJ1bm5lclZlcnNpb24gfX0KICAgICAgSW5jbHVkZURv
+dE5ldENsaTogJHt7IHBhcmFtZXRlcnMuSW5jbHVkZURvdE5ldENsaSB9fQog
+ICAgICBEb3ROZXRDbGlQYWNrYWdlVHlwZTogJHt7IHBhcmFtZXRlcnMuRG90
+TmV0Q2xpUGFja2FnZVR5cGUgfX0KICAgICAgRG90TmV0Q2xpVmVyc2lvbjog
+JHt7IHBhcmFtZXRlcnMuRG90TmV0Q2xpVmVyc2lvbiB9fQogICAgICBFbmFi
+bGVYVW5pdFJlcG9ydGVyOiAke3sgcGFyYW1ldGVycy5FbmFibGVYVW5pdFJl
+cG9ydGVyIH19CiAgICAgIFdhaXRGb3JXb3JrSXRlbUNvbXBsZXRpb246ICR7
+eyBwYXJhbWV0ZXJzLldhaXRGb3JXb3JrSXRlbUNvbXBsZXRpb24gfX0KICAg
+IGNvbmRpdGlvbjogJHt7IHBhcmFtZXRlcnMuY29uZGl0aW9uIH19CiAgICBj
+b250aW51ZU9uRXJyb3I6ICR7eyBwYXJhbWV0ZXJzLmNvbnRpbnVlT25FcnJv
+ciB9fQo=
